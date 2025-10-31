@@ -5,16 +5,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Compiled JavaScript (generated from TypeScript)
-viewer.js
 *.js.map
-
-# Comic images (large binary files - host separately or use Git LFS)
-images/
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.webp
 
 # Operating System files
 .DS_Store
