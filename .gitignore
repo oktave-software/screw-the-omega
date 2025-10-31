@@ -1,0 +1,48 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compiled JavaScript (generated from TypeScript)
+viewer.js
+*.js.map
+
+# Comic images (large binary files - host separately or use Git LFS)
+images/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Build and temporary files
+dist/
+build/
+*.log
+.cache/
+
+# Environment variables
+.env
+.env.local
+.env.*.local

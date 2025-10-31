@@ -1,0 +1,12 @@
+{
+  "name": "screw-the-omega",
+  "version": "1.0.0",
+  "description": "Comic viewer for Screw the Omega",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
