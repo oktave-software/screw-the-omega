@@ -4,14 +4,22 @@ interface OmegaConfig {
     currentPage: number;
 }
 
+interface LoadedImage {
+    element: HTMLImageElement;
+    pageIndex: number;
+}
+
 class OmegaViewer {
     private config: OmegaConfig;
-    private pageImage: HTMLImageElement;
+    private pageContainer: HTMLElement;
     private currentPageElement: HTMLElement;
     private totalPagesElement: HTMLElement;
     private loadingElement: HTMLElement;
     private navLeft: HTMLElement;
     private navRight: HTMLElement;
+    private loadedImages: Map<number, LoadedImage>;
+    private isInfiniteScrollMode: boolean;
+    private scrollTimeout: number | null;
 
     constructor() {
         // Initialize page configuration
@@ -55,8 +63,12 @@ class OmegaViewer {
             currentPage: 0
         };
 
+        this.loadedImages = new Map();
+        this.isInfiniteScrollMode = true;
+        this.scrollTimeout = null;
+
         // Get DOM elements
-        this.pageImage = document.getElementById('omega-page') as HTMLImageElement;
+        this.pageContainer = document.getElementById('page-container') as HTMLElement;
         this.currentPageElement = document.getElementById('current-page') as HTMLElement;
         this.totalPagesElement = document.getElementById('total-pages') as HTMLElement;
         this.loadingElement = document.getElementById('loading') as HTMLElement;
@@ -71,16 +83,16 @@ class OmegaViewer {
         this.totalPagesElement.textContent = this.config.pages.length.toString();
 
         // Load first page
-        this.loadPage(0);
+        this.loadInitialPage(0);
 
         // Add event listeners
         this.setupEventListeners();
-
-        // Preload adjacent pages
-        this.preloadAdjacentPages();
     }
 
     private setupEventListeners(): void {
+        // Scroll event for infinite scrolling
+        window.addEventListener('scroll', () => this.handleScroll());
+
         // Keyboard navigation
         document.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.key === 'ArrowLeft') {
@@ -138,59 +150,200 @@ class OmegaViewer {
         // This will be set by setupTouchNavigation
     }
 
-    private loadPage(pageIndex: number): void {
-        if (pageIndex < 0 || pageIndex >= this.config.pages.length) {
-            return;
+    private handleScroll(): void {
+        if (!this.isInfiniteScrollMode) return;
+
+        // Debounce scroll event
+        if (this.scrollTimeout !== null) {
+            clearTimeout(this.scrollTimeout);
         }
 
-        this.showLoading();
-        this.config.currentPage = pageIndex;
+        this.scrollTimeout = window.setTimeout(() => {
+            this.checkAndLoadAdjacentImages();
+            this.updateCurrentPageIndicator();
+        }, 100);
+    }
 
-        // Scroll to top when changing pages
-        window.scrollTo(0, 0);
+    private checkAndLoadAdjacentImages(): void {
+        const scrollTop = window.scrollY;
+        const viewportHeight = window.innerHeight;
+        const threshold = viewportHeight * 1.5; // Load when within 1.5 viewports (preload earlier)
 
+        // Check if we need to load next image
+        const lastImage = this.getLastLoadedImage();
+        if (lastImage) {
+            const lastImageBottom = lastImage.element.offsetTop + lastImage.element.offsetHeight;
+            if (scrollTop + viewportHeight + threshold > lastImageBottom) {
+                const nextIndex = lastImage.pageIndex + 1;
+                if (nextIndex < this.config.pages.length && !this.loadedImages.has(nextIndex)) {
+                    this.loadImageAtEnd(nextIndex);
+                    // Preload the next one too
+                    this.preloadImage(nextIndex + 1);
+                }
+            }
+        }
+
+        // Check if we need to load previous image
+        const firstImage = this.getFirstLoadedImage();
+        if (firstImage) {
+            const firstImageTop = firstImage.element.offsetTop;
+            if (scrollTop - threshold < firstImageTop) {
+                const prevIndex = firstImage.pageIndex - 1;
+                if (prevIndex >= 0 && !this.loadedImages.has(prevIndex)) {
+                    this.loadImageAtStart(prevIndex);
+                    // Preload the previous one too
+                    this.preloadImage(prevIndex - 1);
+                }
+            }
+        }
+    }
+
+    private preloadImage(pageIndex: number): void {
+        if (pageIndex < 0 || pageIndex >= this.config.pages.length) return;
+
+        // Just preload into cache, don't add to DOM
         const img = new Image();
+        img.src = this.config.pages[pageIndex];
+    }
+
+    private updateCurrentPageIndicator(): void {
+        const scrollTop = window.scrollY + window.innerHeight / 2;
+
+        // Find which image is currently in view
+        let currentImageIndex = this.config.currentPage;
+        for (const [pageIndex, loadedImage] of this.loadedImages) {
+            const imageTop = loadedImage.element.offsetTop;
+            const imageBottom = imageTop + loadedImage.element.offsetHeight;
+
+            if (scrollTop >= imageTop && scrollTop <= imageBottom) {
+                currentImageIndex = pageIndex;
+                break;
+            }
+        }
+
+        if (currentImageIndex !== this.config.currentPage) {
+            this.config.currentPage = currentImageIndex;
+            this.currentPageElement.textContent = (currentImageIndex + 1).toString();
+        }
+    }
+
+    private loadInitialPage(pageIndex: number): void {
+        this.config.currentPage = pageIndex;
+        this.currentPageElement.textContent = (pageIndex + 1).toString();
+        this.loadImageAtEnd(pageIndex);
+    }
+
+    private loadImageAtEnd(pageIndex: number): void {
+        if (this.loadedImages.has(pageIndex)) return;
+
+        const img = document.createElement('img');
+        img.className = 'omega-page';
+        img.dataset.pageIndex = pageIndex.toString();
+        img.alt = `Screw the Omega Page ${pageIndex + 1}`;
+
+        const loadedImage: LoadedImage = {
+            element: img,
+            pageIndex: pageIndex
+        };
+
         img.onload = () => {
-            this.pageImage.src = this.config.pages[pageIndex];
-            this.currentPageElement.textContent = (pageIndex + 1).toString();
-            this.hideLoading();
-            this.preloadAdjacentPages();
+            // Image loaded successfully
         };
 
         img.onerror = () => {
             console.error(`Failed to load page ${pageIndex + 1}`);
-            this.hideLoading();
-            // Show error state
-            this.pageImage.alt = `Failed to load page ${pageIndex + 1}`;
         };
 
         img.src = this.config.pages[pageIndex];
+        this.pageContainer.appendChild(img);
+        this.loadedImages.set(pageIndex, loadedImage);
     }
 
-    private preloadAdjacentPages(): void {
-        // Preload next page
-        if (this.config.currentPage + 1 < this.config.pages.length) {
-            const nextImg = new Image();
-            nextImg.src = this.config.pages[this.config.currentPage + 1];
-        }
+    private loadImageAtStart(pageIndex: number): void {
+        if (this.loadedImages.has(pageIndex)) return;
 
-        // Preload previous page
-        if (this.config.currentPage - 1 >= 0) {
-            const prevImg = new Image();
-            prevImg.src = this.config.pages[this.config.currentPage - 1];
+        const img = document.createElement('img');
+        img.className = 'omega-page';
+        img.dataset.pageIndex = pageIndex.toString();
+        img.alt = `Screw the Omega Page ${pageIndex + 1}`;
+
+        const loadedImage: LoadedImage = {
+            element: img,
+            pageIndex: pageIndex
+        };
+
+        // Store current scroll position
+        const currentScrollHeight = document.documentElement.scrollHeight;
+        const currentScrollTop = window.scrollY;
+
+        img.onload = () => {
+            // Restore scroll position after image loads
+            const newScrollHeight = document.documentElement.scrollHeight;
+            const heightDiff = newScrollHeight - currentScrollHeight;
+            window.scrollTo(0, currentScrollTop + heightDiff);
+        };
+
+        img.onerror = () => {
+            console.error(`Failed to load page ${pageIndex + 1}`);
+        };
+
+        img.src = this.config.pages[pageIndex];
+        this.pageContainer.insertBefore(img, this.pageContainer.firstChild);
+        this.loadedImages.set(pageIndex, loadedImage);
+    }
+
+    private getFirstLoadedImage(): LoadedImage | null {
+        let first: LoadedImage | null = null;
+        for (const [_, loadedImage] of this.loadedImages) {
+            if (first === null || loadedImage.pageIndex < first.pageIndex) {
+                first = loadedImage;
+            }
         }
+        return first;
+    }
+
+    private getLastLoadedImage(): LoadedImage | null {
+        let last: LoadedImage | null = null;
+        for (const [_, loadedImage] of this.loadedImages) {
+            if (last === null || loadedImage.pageIndex > last.pageIndex) {
+                last = loadedImage;
+            }
+        }
+        return last;
     }
 
     private nextPage(): void {
         if (this.config.currentPage < this.config.pages.length - 1) {
-            this.loadPage(this.config.currentPage + 1);
+            const nextIndex = this.config.currentPage + 1;
+            this.navigateToPage(nextIndex);
         }
     }
 
     private previousPage(): void {
         if (this.config.currentPage > 0) {
-            this.loadPage(this.config.currentPage - 1);
+            const prevIndex = this.config.currentPage - 1;
+            this.navigateToPage(prevIndex);
         }
+    }
+
+    private navigateToPage(pageIndex: number): void {
+        // Clear all loaded images and load just this page
+        this.isInfiniteScrollMode = false;
+        this.pageContainer.innerHTML = '';
+        this.loadedImages.clear();
+
+        this.config.currentPage = pageIndex;
+        this.currentPageElement.textContent = (pageIndex + 1).toString();
+
+        this.loadImageAtEnd(pageIndex);
+
+        // Scroll to top
+        window.scrollTo(0, 0);
+
+        // Re-enable infinite scroll after a short delay
+        setTimeout(() => {
+            this.isInfiniteScrollMode = true;
+        }, 500);
     }
 
     private showLoading(): void {

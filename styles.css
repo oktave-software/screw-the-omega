@@ -26,11 +26,12 @@ body {
     position: relative;
     width: 100%;
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
 }
 
-#omega-page {
+.omega-page {
     width: 100vw;
     height: auto;
     display: block;
@@ -40,7 +41,7 @@ body {
 
 /* For landscape/wide displays: constrain width to viewport height (1:1 ratio) */
 @media (min-aspect-ratio: 1/1) {
-    #omega-page {
+    .omega-page {
         width: 100vh;
         max-width: 100vh;
     }
