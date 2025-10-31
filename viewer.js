@@ -115,6 +115,8 @@ class OmegaViewer {
         }
         this.showLoading();
         this.config.currentPage = pageIndex;
+        // Scroll to top when changing pages
+        window.scrollTo(0, 0);
         const img = new Image();
         img.onload = () => {
             this.pageImage.src = this.config.pages[pageIndex];

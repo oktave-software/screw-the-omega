@@ -27,11 +27,17 @@ Desktop.ini
 .classpath
 .settings/
 
+# Claude Code
+.claude/
+.claudesync/
+CLAUDE.md
+
 # Build and temporary files
 dist/
 build/
 *.log
 .cache/
+test/temp/
 
 # Environment variables
 .env
