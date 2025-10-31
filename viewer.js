@@ -57,21 +57,21 @@ class OmegaViewer {
     init() {
         // Set total pages
         this.totalPagesElement.textContent = this.config.pages.length.toString();
-        // Load first page
-        this.loadInitialPage(0);
         // Add event listeners
         this.setupEventListeners();
-        // Preload all images (cover first, then all others)
+        // Load all images into DOM (cover first, then all others)
         this.preloadAllImages();
         // Set initial page indicator visibility (hide on header)
         this.updatePageIndicatorVisibility();
     }
     preloadAllImages() {
-        // Preload cover first (index 0)
-        this.preloadImage(0);
-        // Then preload all remaining images in sequence
+        // Load cover first (index 0) into DOM
+        this.loadImageAtEnd(0);
+        this.config.currentPage = 0;
+        this.currentPageElement.textContent = '1';
+        // Then load all remaining images into DOM in sequence
         for (let i = 1; i < this.config.pages.length; i++) {
-            this.preloadImage(i);
+            this.loadImageAtEnd(i);
         }
     }
     setupEventListeners() {
