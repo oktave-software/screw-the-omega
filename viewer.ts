@@ -87,6 +87,9 @@ class OmegaViewer {
 
         // Add event listeners
         this.setupEventListeners();
+
+        // Preload next 2 and previous 2 images from starting page
+        this.preloadAdjacentImages(0);
     }
 
     private setupEventListeners(): void {
@@ -177,8 +180,6 @@ class OmegaViewer {
                 const nextIndex = lastImage.pageIndex + 1;
                 if (nextIndex < this.config.pages.length && !this.loadedImages.has(nextIndex)) {
                     this.loadImageAtEnd(nextIndex);
-                    // Preload the next one too
-                    this.preloadImage(nextIndex + 1);
                 }
             }
         }
@@ -191,8 +192,6 @@ class OmegaViewer {
                 const prevIndex = firstImage.pageIndex - 1;
                 if (prevIndex >= 0 && !this.loadedImages.has(prevIndex)) {
                     this.loadImageAtStart(prevIndex);
-                    // Preload the previous one too
-                    this.preloadImage(prevIndex - 1);
                 }
             }
         }
@@ -224,7 +223,18 @@ class OmegaViewer {
         if (currentImageIndex !== this.config.currentPage) {
             this.config.currentPage = currentImageIndex;
             this.currentPageElement.textContent = (currentImageIndex + 1).toString();
+            // When page changes, preload adjacent images
+            this.preloadAdjacentImages(currentImageIndex);
         }
+    }
+
+    private preloadAdjacentImages(pageIndex: number): void {
+        // Preload next 2 images
+        this.preloadImage(pageIndex + 1);
+        this.preloadImage(pageIndex + 2);
+        // Preload previous 2 images
+        this.preloadImage(pageIndex - 1);
+        this.preloadImage(pageIndex - 2);
     }
 
     private loadInitialPage(pageIndex: number): void {
@@ -336,6 +346,9 @@ class OmegaViewer {
         this.currentPageElement.textContent = (pageIndex + 1).toString();
 
         this.loadImageAtEnd(pageIndex);
+
+        // Preload adjacent images
+        this.preloadAdjacentImages(pageIndex);
 
         // Scroll to top
         window.scrollTo(0, 0);
