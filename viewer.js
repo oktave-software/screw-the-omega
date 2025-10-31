@@ -4,6 +4,7 @@ class OmegaViewer {
         // Initialize page configuration
         this.config = {
             pages: [
+                'images/Cover1.png',
                 'images/Pg1.png',
                 'images/Pg2.png',
                 'images/Pg3.png',
