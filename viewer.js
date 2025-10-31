@@ -130,6 +130,8 @@ class OmegaViewer {
         const scrollTop = window.scrollY;
         const viewportHeight = window.innerHeight;
         const threshold = viewportHeight * 1.5; // Load when within 1.5 viewports (preload earlier)
+        const header = document.getElementById('header');
+        const headerOffset = header ? header.offsetHeight : 0;
         // Check if we need to load next image
         const lastImage = this.getLastLoadedImage();
         if (lastImage) {
@@ -141,9 +143,9 @@ class OmegaViewer {
                 }
             }
         }
-        // Check if we need to load previous image
+        // Check if we need to load previous image - only if we haven't reached the first page
         const firstImage = this.getFirstLoadedImage();
-        if (firstImage) {
+        if (firstImage && firstImage.pageIndex > 0) {
             const firstImageTop = firstImage.element.offsetTop;
             if (scrollTop - threshold < firstImageTop) {
                 const prevIndex = firstImage.pageIndex - 1;
@@ -280,8 +282,10 @@ class OmegaViewer {
         this.loadImageAtEnd(pageIndex);
         // Preload adjacent images
         this.preloadAdjacentImages(pageIndex);
-        // Scroll to top
-        window.scrollTo(0, 0);
+        // Scroll to viewer (skip header)
+        const header = document.getElementById('header');
+        const headerOffset = header ? header.offsetHeight : 0;
+        window.scrollTo(0, headerOffset);
         // Re-enable infinite scroll after a short delay
         setTimeout(() => {
             this.isInfiniteScrollMode = true;
