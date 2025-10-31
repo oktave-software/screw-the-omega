@@ -63,10 +63,10 @@ body {
 
 /* Navigation areas */
 .nav-area {
-    position: absolute;
+    position: fixed;
     top: 0;
     bottom: 0;
-    width: 50%;
+    width: 33.333%;
     cursor: pointer;
     z-index: 10;
 }
@@ -81,9 +81,24 @@ body {
     cursor: e-resize;
 }
 
+/* For landscape/wide displays: position nav areas relative to image */
+@media (min-aspect-ratio: 1/1) {
+    .nav-area {
+        width: calc((100vw - 100vh) / 2 + 100vh / 3);
+    }
+
+    #nav-left {
+        left: 0;
+    }
+
+    #nav-right {
+        right: 0;
+    }
+}
+
 /* Page indicator */
 #page-indicator {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
