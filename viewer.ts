@@ -89,11 +89,21 @@ class OmegaViewer {
         // Add event listeners
         this.setupEventListeners();
 
-        // Preload next 2 and previous 2 images from starting page
-        this.preloadAdjacentImages(0);
+        // Preload all images (cover first, then all others)
+        this.preloadAllImages();
 
         // Set initial page indicator visibility (hide on header)
         this.updatePageIndicatorVisibility();
+    }
+
+    private preloadAllImages(): void {
+        // Preload cover first (index 0)
+        this.preloadImage(0);
+
+        // Then preload all remaining images in sequence
+        for (let i = 1; i < this.config.pages.length; i++) {
+            this.preloadImage(i);
+        }
     }
 
     private setupEventListeners(): void {
