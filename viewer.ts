@@ -90,6 +90,9 @@ class OmegaViewer {
 
         // Preload next 2 and previous 2 images from starting page
         this.preloadAdjacentImages(0);
+
+        // Set initial page indicator visibility (hide on header)
+        this.updatePageIndicatorVisibility();
     }
 
     private setupEventListeners(): void {
@@ -105,9 +108,17 @@ class OmegaViewer {
             }
         });
 
-        // Click navigation
-        this.navLeft.addEventListener('click', () => this.previousPage());
-        this.navRight.addEventListener('click', () => this.nextPage());
+        // Click navigation - only navigate if clicking within viewer bounds
+        this.navLeft.addEventListener('click', (e: MouseEvent) => {
+            if (this.isClickInViewerArea(e)) {
+                this.previousPage();
+            }
+        });
+        this.navRight.addEventListener('click', (e: MouseEvent) => {
+            if (this.isClickInViewerArea(e)) {
+                this.nextPage();
+            }
+        });
 
         // Touch swipe navigation
         this.setupTouchNavigation();
@@ -121,19 +132,26 @@ class OmegaViewer {
     private setupTouchNavigation(): void {
         let touchStartX = 0;
         let touchEndX = 0;
+        let touchStartY = 0;
 
         document.addEventListener('touchstart', (e: TouchEvent) => {
             touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
         });
 
         document.addEventListener('touchend', (e: TouchEvent) => {
             touchEndX = e.changedTouches[0].screenX;
-            this.handleSwipe();
+            this.handleSwipe(touchStartY);
         });
 
-        const handleSwipe = (): void => {
+        const handleSwipe = (startY: number): void => {
             const swipeThreshold = 50;
             const diff = touchStartX - touchEndX;
+
+            // Check if touch was within viewer bounds
+            if (!this.isTouchInViewerArea(startY)) {
+                return;
+            }
 
             if (Math.abs(diff) > swipeThreshold) {
                 if (diff > 0) {
@@ -149,8 +167,63 @@ class OmegaViewer {
         this.handleSwipe = handleSwipe;
     }
 
-    private handleSwipe(): void {
+    private handleSwipe(startY: number): void {
         // This will be set by setupTouchNavigation
+    }
+
+    private isClickInViewerArea(e: MouseEvent): boolean {
+        const header = document.getElementById('header');
+        const footer = document.getElementById('footer');
+        const viewer = document.getElementById('omega-viewer');
+
+        if (!viewer) return false;
+
+        const viewerRect = viewer.getBoundingClientRect();
+        const headerRect = header ? header.getBoundingClientRect() : null;
+        const footerRect = footer ? footer.getBoundingClientRect() : null;
+
+        // Check if click Y position is within viewer bounds
+        const clickY = e.clientY;
+
+        // Prevent navigation if in header
+        if (headerRect && clickY < headerRect.bottom) {
+            return false;
+        }
+
+        // Prevent navigation if in footer
+        if (footerRect && clickY > footerRect.top) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private isTouchInViewerArea(touchY: number): boolean {
+        const header = document.getElementById('header');
+        const footer = document.getElementById('footer');
+        const viewer = document.getElementById('omega-viewer');
+
+        if (!viewer) return false;
+
+        const viewerRect = viewer.getBoundingClientRect();
+        const headerRect = header ? header.getBoundingClientRect() : null;
+        const footerRect = footer ? footer.getBoundingClientRect() : null;
+
+        const scrollY = window.scrollY;
+        const absoluteTouchY = touchY + scrollY;
+        const headerHeight = header ? header.offsetHeight : 0;
+        const footerTop = footer ? footer.offsetTop : document.documentElement.scrollHeight;
+
+        // Check if touch is in viewer area (not in header or footer)
+        if (absoluteTouchY < headerHeight) {
+            return false;
+        }
+
+        if (absoluteTouchY > footerTop) {
+            return false;
+        }
+
+        return true;
     }
 
     private handleScroll(): void {
@@ -164,7 +237,33 @@ class OmegaViewer {
         this.scrollTimeout = window.setTimeout(() => {
             this.checkAndLoadAdjacentImages();
             this.updateCurrentPageIndicator();
+            this.updatePageIndicatorVisibility();
         }, 100);
+    }
+
+    private updatePageIndicatorVisibility(): void {
+        const header = document.getElementById('header');
+        const footer = document.getElementById('footer');
+        const pageIndicator = document.getElementById('page-indicator');
+
+        if (!pageIndicator) return;
+
+        const scrollTop = window.scrollY;
+        const viewportHeight = window.innerHeight;
+        const scrollBottom = scrollTop + viewportHeight;
+
+        const headerHeight = header ? header.offsetHeight : 0;
+        const footerTop = footer ? footer.offsetTop : document.documentElement.scrollHeight;
+
+        // Check if we're viewing the comic (not header or footer)
+        const isInHeader = scrollBottom < headerHeight + viewportHeight * 0.3;
+        const isInFooter = scrollTop > footerTop - viewportHeight * 0.7;
+
+        if (isInHeader || isInFooter) {
+            pageIndicator.style.display = 'none';
+        } else {
+            pageIndicator.style.display = 'block';
+        }
     }
 
     private checkAndLoadAdjacentImages(): void {
@@ -356,6 +455,9 @@ class OmegaViewer {
         const header = document.getElementById('header');
         const headerOffset = header ? header.offsetHeight : 0;
         window.scrollTo(0, headerOffset);
+
+        // Update page indicator visibility
+        this.updatePageIndicatorVisibility();
 
         // Re-enable infinite scroll after a short delay
         setTimeout(() => {
