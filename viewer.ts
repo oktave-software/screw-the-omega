@@ -172,11 +172,6 @@ class OmegaViewer {
         img.src = this.config.pages[pageIndex];
         this.pageContainer.appendChild(img);
         this.loadedImages.set(pageIndex, loadedImage);
-
-        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
-            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-            img.style.transformOrigin = '0 0';
-        }
     }
 
     private handleKeydown(e: KeyboardEvent): void {
@@ -336,11 +331,8 @@ class OmegaViewer {
     }
 
     private applyTransform(): void {
-        for (const loadedImage of this.loadedImages.values()) {
-            const img = loadedImage.element;
-            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-            img.style.transformOrigin = '0 0';
-        }
+        this.pageContainer.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
+        this.pageContainer.style.transformOrigin = '0 0';
     }
 
     private setupPanDrag(): void {
@@ -574,11 +566,6 @@ class OmegaViewer {
         img.src = this.config.pages[pageIndex];
         this.pageContainer.appendChild(img);
         this.loadedImages.set(pageIndex, loadedImage);
-
-        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
-            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-            img.style.transformOrigin = '0 0';
-        }
     }
 
     private loadImageAtStart(pageIndex: number): void {
@@ -612,11 +599,6 @@ class OmegaViewer {
         img.src = this.config.pages[pageIndex];
         this.pageContainer.insertBefore(img, this.pageContainer.firstChild);
         this.loadedImages.set(pageIndex, loadedImage);
-
-        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
-            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-            img.style.transformOrigin = '0 0';
-        }
     }
 
     private getFirstLoadedImage(): LoadedImage | null {

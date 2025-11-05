@@ -103,10 +103,6 @@ class OmegaViewer {
         img.src = this.config.pages[pageIndex];
         this.pageContainer.appendChild(img);
         this.loadedImages.set(pageIndex, loadedImage);
-        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
-            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-            img.style.transformOrigin = '0 0';
-        }
     }
     handleKeydown(e) {
         if (e.key === 'ArrowLeft') {
@@ -245,11 +241,9 @@ class OmegaViewer {
         document.addEventListener('touchmove', this.boundPinchTouchMove, { passive: false });
     }
     applyTransform() {
-        for (const loadedImage of this.loadedImages.values()) {
-            const img = loadedImage.element;
-            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-            img.style.transformOrigin = '0 0';
-        }
+        // Apply transform to container instead of individual images (industry standard)
+        this.pageContainer.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
+        this.pageContainer.style.transformOrigin = '0 0';
     }
     setupPanDrag() {
         let isDragging = false;
@@ -446,10 +440,6 @@ class OmegaViewer {
         img.src = this.config.pages[pageIndex];
         this.pageContainer.appendChild(img);
         this.loadedImages.set(pageIndex, loadedImage);
-        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
-            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-            img.style.transformOrigin = '0 0';
-        }
     }
     loadImageAtStart(pageIndex) {
         if (this.loadedImages.has(pageIndex))
@@ -477,10 +467,6 @@ class OmegaViewer {
         img.src = this.config.pages[pageIndex];
         this.pageContainer.insertBefore(img, this.pageContainer.firstChild);
         this.loadedImages.set(pageIndex, loadedImage);
-        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
-            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-            img.style.transformOrigin = '0 0';
-        }
     }
     getFirstLoadedImage() {
         let first = null;
