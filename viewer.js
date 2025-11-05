@@ -500,17 +500,23 @@ class OmegaViewer {
     }
     navigateToPage(pageIndex) {
         this.isInfiniteScrollMode = false;
-        this.pageContainer.innerHTML = '';
-        this.loadedImages.clear();
+        // Reset zoom/pan transform on container
         this.zoomLevel = 1.0;
         this.translateX = 0;
         this.translateY = 0;
+        this.pageContainer.style.transform = '';
+        this.pageContainer.style.transformOrigin = '';
         this.config.currentPage = pageIndex;
         this.currentPageElement.textContent = (pageIndex + 1).toString();
-        this.loadImageAtEnd(pageIndex);
-        this.preloadAdjacentImages(pageIndex);
+        // Scroll to the target page if it's loaded, otherwise scroll to top of viewer
+        const targetImage = this.loadedImages.get(pageIndex);
         const headerOffset = this.header ? this.header.offsetHeight : 0;
-        window.scrollTo(0, headerOffset);
+        if (targetImage && targetImage.element.complete) {
+            window.scrollTo(0, targetImage.element.offsetTop);
+        }
+        else {
+            window.scrollTo(0, headerOffset);
+        }
         this.updatePageIndicatorVisibility();
         setTimeout(() => {
             this.isInfiniteScrollMode = true;

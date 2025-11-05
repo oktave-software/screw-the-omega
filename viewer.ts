@@ -638,21 +638,23 @@ class OmegaViewer {
 
     private navigateToPage(pageIndex: number): void {
         this.isInfiniteScrollMode = false;
-        this.pageContainer.innerHTML = '';
-        this.loadedImages.clear();
 
         this.zoomLevel = 1.0;
         this.translateX = 0;
         this.translateY = 0;
+        this.pageContainer.style.transform = '';
+        this.pageContainer.style.transformOrigin = '';
 
         this.config.currentPage = pageIndex;
         this.currentPageElement.textContent = (pageIndex + 1).toString();
 
-        this.loadImageAtEnd(pageIndex);
-        this.preloadAdjacentImages(pageIndex);
-
+        const targetImage = this.loadedImages.get(pageIndex);
         const headerOffset = this.header ? this.header.offsetHeight : 0;
-        window.scrollTo(0, headerOffset);
+        if (targetImage && targetImage.element.complete) {
+            window.scrollTo(0, targetImage.element.offsetTop);
+        } else {
+            window.scrollTo(0, headerOffset);
+        }
 
         this.updatePageIndicatorVisibility();
 
