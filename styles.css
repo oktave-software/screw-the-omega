@@ -9,7 +9,6 @@ body {
     font-family: 'Courier New', Courier, monospace;
     overflow-x: hidden;
     overflow-y: auto;
-    user-select: none;
 }
 
 /* Header Section */
@@ -123,8 +122,27 @@ body {
     max-width: 100%;
     height: auto;
     display: block;
+    user-select: none;
     /* Portrait displays: use full width. Landscape: constrained by media query below */
     /* Height is auto to preserve aspect ratio, allows vertical scrolling */
+}
+
+.omega-page-error {
+    min-height: 400px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    border: 2px dashed #9370DB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.omega-page-error::after {
+    content: '⚠ Image failed to load';
+    color: #9370DB;
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 20px;
 }
 
 /* For landscape/wide displays: constrain to a reasonable max-width */
@@ -132,20 +150,6 @@ body {
     .omega-page {
         max-width: 800px;
     }
-}
-
-#loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff;
-    font-size: 1.5rem;
-    display: none;
-}
-
-#loading.active {
-    display: block;
 }
 
 /* Navigation areas */
@@ -156,6 +160,16 @@ body {
     width: 33.333%;
     cursor: pointer;
     z-index: 10;
+    background: transparent;
+    border: none;
+    padding: 0;
+    outline: none;
+    user-select: none;
+}
+
+.nav-area:focus-visible {
+    outline: 3px solid #9370DB;
+    outline-offset: -3px;
 }
 
 #nav-left {

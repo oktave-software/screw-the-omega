@@ -1,97 +1,89 @@
 # Screw the Omega - Comic Viewer
 
-A responsive comic viewer built with TypeScript, HTML, and CSS.
+A responsive webcomic viewer for "Screw the Omega" by Nine0uh, built with TypeScript, HTML, and CSS. This viewer displays 35 comic pages (Cover + Pages 1-34) with an optimized reading experience for both desktop and mobile devices.
 
 ## Features
 
-- **Keyboard Navigation**: Use left/right arrow keys to navigate between pages
-- **Click Navigation**: Click on the left/right side of the page to navigate
-- **Touch/Swipe Support**: Swipe left/right on mobile devices
-- **Responsive Design**: Works on both desktop and mobile devices
-- **Page Preloading**: Adjacent pages are preloaded for smooth navigation
-- **Page Indicator**: Shows current page and total pages
+- **Multiple Navigation Methods**:
+  - Keyboard: Left/right arrow keys
+  - Mouse: Click left/right third of screen, or use accessible navigation buttons
+  - Touch: Swipe left/right on mobile devices
+- **Pinch-to-Zoom**: Industry-standard pinch-to-zoom with pan/drag support when zoomed
+- **Infinite Scroll**: Seamlessly scroll through all pages with dynamic loading
+- **Responsive Design**: Optimized layouts for portrait/landscape and mobile/desktop
+- **Smart Loading**: First 5 pages load immediately, remaining pages load in background
+- **Accessibility**: ARIA labels, keyboard navigation, screen reader support, focus indicators
+- **Page Indicator**: Fixed position indicator shows current page and total pages
 
-## Setup Instructions
+## Development
 
-### 1. Add Your Comic Pages
-
-1. Download all comic pages from the Google Drive folder
-2. Place them in the `images/` folder
-3. Name them sequentially (e.g., `page1.jpg`, `page2.jpg`, etc.)
-
-### 2. Update the Page List
-
-Edit `viewer.ts` and update the `pages` array with your comic page filenames:
-
-```typescript
-this.config = {
-    pages: [
-        'images/page1.jpg',
-        'images/page2.jpg',
-        'images/page3.jpg',
-        // Add all your comic pages here
-    ],
-    currentPage: 0
-};
-```
-
-### 3. Recompile TypeScript
-
-After updating the page list, recompile the TypeScript:
+### Prerequisites
 
 ```bash
+npm install
+```
+
+### Build Commands
+
+```bash
+# Compile TypeScript to JavaScript
 npm run build
-```
 
-Or for automatic recompilation on changes:
-
-```bash
+# Watch mode - automatically recompile on changes
 npm run watch
+
+# Run screenshot test
+node test/screenshot.js
 ```
 
-### 4. Open the Viewer
+### Modifying Comic Pages
 
-Open `index.html` in your web browser to view the comic.
+To add or remove pages:
 
-## Usage
+1. Place PNG files in `images/` directory following the naming convention: `Cover1.png`, `Pg1.png`, `Pg2.png`, etc.
+2. Update the page count in `viewer.ts` constructor (around line 41): change the loop limit from `34` to your desired count
+3. Run `npm run build` to recompile
 
-- **Desktop**:
-  - Click left/right side of the page to navigate
-  - Use arrow keys (← →) to navigate
-  - Hover to see navigation arrows
+Pages are programmatically generated, so you only need to change one number to add/remove pages.
 
-- **Mobile**:
-  - Tap left/right side of the screen to navigate
-  - Swipe left/right to navigate
-  - Navigation arrows are always visible with reduced opacity
+## Architecture
+
+Built with a single-class architecture (`OmegaViewer`) that manages:
+- Image loading with priority queue (first 5 images load immediately)
+- Infinite scroll with dynamic page tracking
+- Industry-standard pinch-to-zoom with translate + scale transforms
+- Touch gesture detection (swipe, pinch, pan/drag)
+- Navigation boundary validation
+- Memory leak prevention with proper cleanup
+
+See `CLAUDE.md` for detailed implementation documentation.
 
 ## File Structure
 
 ```
 screw-the-omega/
-├── index.html          # Main HTML file
-├── styles.css          # Responsive CSS styles
+├── index.html          # Main HTML with semantic markup and ARIA labels
+├── styles.css          # Responsive CSS with mobile-first design
 ├── viewer.ts           # TypeScript source code
-├── viewer.js           # Compiled JavaScript (auto-generated)
-├── images/             # Comic pages directory
-│   ├── page1.jpg
-│   ├── page2.jpg
-│   └── ...
+├── images/             # Comic pages (Cover1.png, Pg1-34.png)
+├── test/               # Screenshot testing with Playwright
 ├── package.json        # NPM configuration
-├── tsconfig.json       # TypeScript configuration
+├── tsconfig.json       # TypeScript configuration (ES2020, strict mode)
+├── CLAUDE.md           # Detailed implementation documentation
 └── README.md           # This file
 ```
 
-## Development
-
-To make changes to the viewer:
-
-1. Edit `viewer.ts` for logic changes
-2. Edit `styles.css` for styling changes
-3. Edit `index.html` for structure changes
-4. Run `npm run build` to recompile TypeScript
+**Note:** `viewer.js` is auto-generated from `viewer.ts` but **must be committed** to version control because this project deploys via GitHub Pages (no server-side build step).
 
 ## Browser Compatibility
 
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- Mobile browsers (iOS Safari, Chrome Mobile, Samsung Internet)
+- Modern browsers: Chrome, Firefox, Safari, Edge
+- Mobile browsers: iOS Safari, Chrome Mobile, Samsung Internet
+- Requires ES2020 support
+
+## Credits
+
+**Screw the Omega** is an independent webcomic by [Nine0uh](https://www.instagram.com/nine0uh/)
+
+- Follow on [Instagram](https://www.instagram.com/nine0uh/)
+- Support on [Patreon](https://www.patreon.com/Nine0uh)

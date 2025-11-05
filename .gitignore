@@ -6,6 +6,7 @@ yarn-error.log*
 
 # Compiled JavaScript (generated from TypeScript)
 *.js.map
+# Note: viewer.js is tracked because this is deployed via GitHub Pages
 
 # Operating System files
 .DS_Store

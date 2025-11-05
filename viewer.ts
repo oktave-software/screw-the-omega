@@ -1,4 +1,3 @@
-// Comic page configuration
 interface OmegaConfig {
     pages: string[];
     currentPage: number;
@@ -10,60 +9,57 @@ interface LoadedImage {
 }
 
 class OmegaViewer {
+    // Configuration constants
+    private static readonly SCROLL_DEBOUNCE_MS = 100;
+    private static readonly LOAD_THRESHOLD_MULTIPLIER = 1.5;
+    private static readonly HEADER_VISIBILITY_THRESHOLD = 0.3;
+    private static readonly FOOTER_VISIBILITY_THRESHOLD = 0.7;
+    private static readonly INFINITE_SCROLL_DELAY_MS = 500;
+    private static readonly SWIPE_THRESHOLD_PX = 50;
+    private static readonly INITIAL_IMAGES_TO_LOAD = 5;
+
     private config: OmegaConfig;
     private pageContainer: HTMLElement;
     private currentPageElement: HTMLElement;
     private totalPagesElement: HTMLElement;
-    private loadingElement: HTMLElement;
     private navLeft: HTMLElement;
     private navRight: HTMLElement;
     private loadedImages: Map<number, LoadedImage>;
     private isInfiniteScrollMode: boolean;
-    private scrollTimeout: number | null;
+    private scrollTimeout: ReturnType<typeof setTimeout> | null;
     private zoomLevel: number;
     private minZoom: number;
     private maxZoom: number;
+    private translateX: number;
+    private translateY: number;
+
+    // Cached DOM elements
+    private header: HTMLElement | null;
+    private footer: HTMLElement | null;
+    private pageIndicator: HTMLElement | null;
+
+    // Bound event handlers for cleanup
+    private boundHandleScroll: () => void;
+    private boundHandleKeydown: (e: KeyboardEvent) => void;
+    private boundTouchStart: (e: TouchEvent) => void;
+    private boundTouchEnd: (e: TouchEvent) => void;
+    private boundTouchMove: (e: TouchEvent) => void;
+    private boundPinchTouchStart: (e: TouchEvent) => void;
+    private boundPinchTouchMove: (e: TouchEvent) => void;
+    private boundPanTouchStart: (e: TouchEvent) => void;
+    private boundPanTouchMove: (e: TouchEvent) => void;
+    private boundPanTouchEnd: () => void;
+    private boundPanTouchCancel: () => void;
+    private boundContextMenu: (e: Event) => void;
 
     constructor() {
-        // Initialize page configuration
+        const pages: string[] = ['images/Cover1.png'];
+        for (let i = 1; i <= 34; i++) {
+            pages.push(`images/Pg${i}.png`);
+        }
+
         this.config = {
-            pages: [
-                'images/Cover1.png',
-                'images/Pg1.png',
-                'images/Pg2.png',
-                'images/Pg3.png',
-                'images/Pg4.png',
-                'images/Pg5.png',
-                'images/Pg6.png',
-                'images/Pg7.png',
-                'images/Pg8.png',
-                'images/Pg9.png',
-                'images/Pg10.png',
-                'images/Pg11.png',
-                'images/Pg12.png',
-                'images/Pg13.png',
-                'images/Pg14.png',
-                'images/Pg15.png',
-                'images/Pg16.png',
-                'images/Pg17.png',
-                'images/Pg18.png',
-                'images/Pg19.png',
-                'images/Pg20.png',
-                'images/Pg21.png',
-                'images/Pg22.png',
-                'images/Pg23.png',
-                'images/Pg24.png',
-                'images/Pg25.png',
-                'images/Pg26.png',
-                'images/Pg27.png',
-                'images/Pg28.png',
-                'images/Pg29.png',
-                'images/Pg30.png',
-                'images/Pg31.png',
-                'images/Pg32.png',
-                'images/Pg33.png',
-                'images/Pg34.png'
-            ],
+            pages: pages,
             currentPage: 0
         };
 
@@ -73,50 +69,77 @@ class OmegaViewer {
         this.zoomLevel = 1.0;
         this.minZoom = 1.0;
         this.maxZoom = 5.0;
+        this.translateX = 0;
+        this.translateY = 0;
 
-        // Get DOM elements
-        this.pageContainer = document.getElementById('page-container') as HTMLElement;
-        this.currentPageElement = document.getElementById('current-page') as HTMLElement;
-        this.totalPagesElement = document.getElementById('total-pages') as HTMLElement;
-        this.loadingElement = document.getElementById('loading') as HTMLElement;
-        this.navLeft = document.getElementById('nav-left') as HTMLElement;
-        this.navRight = document.getElementById('nav-right') as HTMLElement;
+        this.pageContainer = this.getRequiredElement('page-container');
+        this.currentPageElement = this.getRequiredElement('current-page');
+        this.totalPagesElement = this.getRequiredElement('total-pages');
+        this.navLeft = this.getRequiredElement('nav-left');
+        this.navRight = this.getRequiredElement('nav-right');
+
+        this.header = document.getElementById('header');
+        this.footer = document.getElementById('footer');
+        this.pageIndicator = document.getElementById('page-indicator');
+
+        this.boundHandleScroll = () => this.handleScroll();
+        this.boundHandleKeydown = (e: KeyboardEvent) => this.handleKeydown(e);
+        this.boundContextMenu = (e: Event) => e.preventDefault();
+
+        this.boundTouchStart = () => {};
+        this.boundTouchEnd = () => {};
+        this.boundTouchMove = () => {};
+        this.boundPinchTouchStart = () => {};
+        this.boundPinchTouchMove = () => {};
+        this.boundPanTouchStart = () => {};
+        this.boundPanTouchMove = () => {};
+        this.boundPanTouchEnd = () => {};
+        this.boundPanTouchCancel = () => {};
 
         this.init();
     }
 
+    private getRequiredElement(id: string): HTMLElement {
+        const element = document.getElementById(id);
+        if (!element) {
+            throw new Error(`Required element #${id} not found in DOM`);
+        }
+        return element;
+    }
+
     private init(): void {
-        // Set total pages
         this.totalPagesElement.textContent = this.config.pages.length.toString();
-
-        // Add event listeners
         this.setupEventListeners();
-
-        // Load all images into DOM (cover first, then all others)
         this.preloadAllImages();
-
-        // Set initial page indicator visibility (hide on header)
         this.updatePageIndicatorVisibility();
     }
 
     private preloadAllImages(): void {
-        // Load images sequentially starting with cover
         this.config.currentPage = 0;
         this.currentPageElement.textContent = '1';
-        this.loadImageSequentially(0);
+        this.loadImageSequentially(0, OmegaViewer.INITIAL_IMAGES_TO_LOAD);
     }
 
-    private loadImageSequentially(pageIndex: number): void {
+    private loadImageSequentially(pageIndex: number, priorityCount: number): void {
         if (pageIndex >= this.config.pages.length) {
-            // All images loaded
             return;
         }
 
-        // Load this image and wait for it to complete before loading next
         this.loadImageWithCallback(pageIndex, () => {
-            // Once loaded, load the next image
-            this.loadImageSequentially(pageIndex + 1);
+            if (pageIndex < priorityCount - 1) {
+                this.loadImageSequentially(pageIndex + 1, priorityCount);
+            } else if (pageIndex === priorityCount - 1) {
+                this.loadRemainingImagesInBackground(priorityCount);
+            } else {
+                this.loadImageSequentially(pageIndex + 1, priorityCount);
+            }
         });
+    }
+
+    private loadRemainingImagesInBackground(startIndex: number): void {
+        if (startIndex < this.config.pages.length) {
+            this.loadImageSequentially(startIndex, this.config.pages.length);
+        }
     }
 
     private loadImageWithCallback(pageIndex: number, onComplete: () => void): void {
@@ -136,13 +159,13 @@ class OmegaViewer {
         };
 
         img.onload = () => {
-            // Image loaded successfully, trigger callback
             onComplete();
         };
 
         img.onerror = () => {
             console.error(`Failed to load page ${pageIndex + 1}`);
-            // Continue loading next image even if this one fails
+            img.classList.add('omega-page-error');
+            img.alt = `Failed to load page ${pageIndex + 1}`;
             onComplete();
         };
 
@@ -150,95 +173,112 @@ class OmegaViewer {
         this.pageContainer.appendChild(img);
         this.loadedImages.set(pageIndex, loadedImage);
 
-        // Apply current zoom level to newly loaded image
-        if (this.zoomLevel !== 1.0) {
-            img.style.transform = `scale(${this.zoomLevel})`;
-            img.style.transformOrigin = 'center center';
+        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
+            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
+            img.style.transformOrigin = '0 0';
+        }
+    }
+
+    private handleKeydown(e: KeyboardEvent): void {
+        if (e.key === 'ArrowLeft') {
+            this.previousPage();
+        } else if (e.key === 'ArrowRight') {
+            this.nextPage();
         }
     }
 
     private setupEventListeners(): void {
-        // Scroll event for infinite scrolling
-        window.addEventListener('scroll', () => this.handleScroll());
+        window.addEventListener('scroll', this.boundHandleScroll);
+        document.addEventListener('keydown', this.boundHandleKeydown);
 
-        // Keyboard navigation
-        document.addEventListener('keydown', (e: KeyboardEvent) => {
-            if (e.key === 'ArrowLeft') {
-                this.previousPage();
-            } else if (e.key === 'ArrowRight') {
-                this.nextPage();
-            }
-        });
-
-        // Click navigation - only navigate if clicking within viewer bounds
         this.navLeft.addEventListener('click', (e: MouseEvent) => {
             if (this.isClickInViewerArea(e)) {
+                e.preventDefault();
                 this.previousPage();
             }
         });
         this.navRight.addEventListener('click', (e: MouseEvent) => {
             if (this.isClickInViewerArea(e)) {
+                e.preventDefault();
                 this.nextPage();
             }
         });
 
-        // Touch swipe navigation
-        this.setupTouchNavigation();
-
-        // Pinch-to-zoom
-        this.setupPinchZoom();
-
-        // Prevent context menu on long press (mobile)
-        document.addEventListener('contextmenu', (e: Event) => {
-            e.preventDefault();
+        this.navLeft.addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.previousPage();
+            }
         });
+        this.navRight.addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.nextPage();
+            }
+        });
+
+        this.setupTouchNavigation();
+        this.setupPinchZoom();
+        this.setupPanDrag();
+
+        this.pageContainer.addEventListener('contextmenu', this.boundContextMenu);
     }
 
     private setupTouchNavigation(): void {
         let touchStartX = 0;
         let touchEndX = 0;
         let touchStartY = 0;
+        let touchIdentifier: number | null = null;
 
-        document.addEventListener('touchstart', (e: TouchEvent) => {
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
-        });
-
-        document.addEventListener('touchend', (e: TouchEvent) => {
-            touchEndX = e.changedTouches[0].screenX;
-            this.handleSwipe(touchStartY);
-        });
-
-        const handleSwipe = (startY: number): void => {
-            const swipeThreshold = 50;
-            const diff = touchStartX - touchEndX;
-
-            // Check if touch was within viewer bounds
-            if (!this.isTouchInViewerArea(startY)) {
-                return;
-            }
-
-            if (Math.abs(diff) > swipeThreshold) {
-                if (diff > 0) {
-                    // Swiped left - next page
-                    this.nextPage();
-                } else {
-                    // Swiped right - previous page
-                    this.previousPage();
-                }
+        this.boundTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 1) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchIdentifier = e.touches[0].identifier;
+            } else {
+                touchIdentifier = null;
             }
         };
 
-        this.handleSwipe = handleSwipe;
+        this.boundTouchEnd = (e: TouchEvent) => {
+            if (touchIdentifier !== null && e.changedTouches.length === 1) {
+                const touch = Array.from(e.changedTouches).find(t => t.identifier === touchIdentifier);
+                if (touch) {
+                    touchEndX = touch.clientX;
+                    this.handleSwipe(touchStartX, touchEndX, touchStartY);
+                }
+            }
+            touchIdentifier = null;
+        };
+
+        document.addEventListener('touchstart', this.boundTouchStart);
+        document.addEventListener('touchend', this.boundTouchEnd);
     }
 
-    private handleSwipe(startY: number): void {
-        // This will be set by setupTouchNavigation
+    private handleSwipe(startX: number, endX: number, startY: number): void {
+        const diff = startX - endX;
+
+        if (!this.isTouchInViewerArea(startY)) {
+            return;
+        }
+
+        if (Math.abs(diff) > OmegaViewer.SWIPE_THRESHOLD_PX) {
+            if (diff > 0) {
+                this.nextPage();
+            } else {
+                this.previousPage();
+            }
+        }
     }
 
     private setupPinchZoom(): void {
         let initialDistance = 0;
         let initialZoom = 1.0;
+        let initialTranslateX = 0;
+        let initialTranslateY = 0;
+        let pinchCenterX = 0;
+        let pinchCenterY = 0;
+        let isPinching = false;
 
         const getDistance = (touch1: Touch, touch2: Touch): number => {
             const dx = touch1.clientX - touch2.clientX;
@@ -246,59 +286,126 @@ class OmegaViewer {
             return Math.sqrt(dx * dx + dy * dy);
         };
 
-        document.addEventListener('touchstart', (e: TouchEvent) => {
+        const getPinchCenter = (touch1: Touch, touch2: Touch): { x: number; y: number } => {
+            return {
+                x: (touch1.clientX + touch2.clientX) / 2,
+                y: (touch1.clientY + touch2.clientY) / 2
+            };
+        };
+
+        this.boundPinchTouchStart = (e: TouchEvent) => {
             if (e.touches.length === 2) {
-                // Prevent default zoom behavior
                 e.preventDefault();
+                isPinching = true;
                 initialDistance = getDistance(e.touches[0], e.touches[1]);
                 initialZoom = this.zoomLevel;
-            }
-        }, { passive: false });
+                initialTranslateX = this.translateX;
+                initialTranslateY = this.translateY;
 
-        document.addEventListener('touchmove', (e: TouchEvent) => {
-            if (e.touches.length === 2) {
+                const center = getPinchCenter(e.touches[0], e.touches[1]);
+                pinchCenterX = center.x;
+                pinchCenterY = center.y;
+            } else {
+                isPinching = false;
+            }
+        };
+
+        this.boundPinchTouchMove = (e: TouchEvent) => {
+            if (e.touches.length === 2 && isPinching) {
                 e.preventDefault();
                 const currentDistance = getDistance(e.touches[0], e.touches[1]);
                 const scale = currentDistance / initialDistance;
                 const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, initialZoom * scale));
 
                 if (newZoom !== this.zoomLevel) {
+                    const contentX = (pinchCenterX - initialTranslateX) / initialZoom;
+                    const contentY = (pinchCenterY - initialTranslateY) / initialZoom;
+
                     this.zoomLevel = newZoom;
-                    this.applyZoom();
+
+                    this.translateX = pinchCenterX - (contentX * newZoom);
+                    this.translateY = pinchCenterY - (contentY * newZoom);
+
+                    this.applyTransform();
                 }
             }
-        }, { passive: false });
+        };
+
+        document.addEventListener('touchstart', this.boundPinchTouchStart, { passive: false });
+        document.addEventListener('touchmove', this.boundPinchTouchMove, { passive: false });
     }
 
-    private applyZoom(): void {
-        // Apply zoom transform to all loaded images
-        for (const [_, loadedImage] of this.loadedImages) {
+    private applyTransform(): void {
+        for (const loadedImage of this.loadedImages.values()) {
             const img = loadedImage.element;
-            img.style.transform = `scale(${this.zoomLevel})`;
-            img.style.transformOrigin = 'center center';
+            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
+            img.style.transformOrigin = '0 0';
         }
     }
 
+    private setupPanDrag(): void {
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let initialTranslateX = 0;
+        let initialTranslateY = 0;
+        let dragTouchId: number | null = null;
+
+        this.boundPanTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 1 && this.zoomLevel > 1.0) {
+                isDragging = true;
+                dragTouchId = e.touches[0].identifier;
+                dragStartX = e.touches[0].clientX;
+                dragStartY = e.touches[0].clientY;
+                initialTranslateX = this.translateX;
+                initialTranslateY = this.translateY;
+            } else {
+                isDragging = false;
+                dragTouchId = null;
+            }
+        };
+
+        this.boundPanTouchMove = (e: TouchEvent) => {
+            if (isDragging && e.touches.length === 1 && dragTouchId !== null) {
+                const touch = Array.from(e.touches).find(t => t.identifier === dragTouchId);
+                if (touch) {
+                    e.preventDefault();
+                    const deltaX = touch.clientX - dragStartX;
+                    const deltaY = touch.clientY - dragStartY;
+
+                    this.translateX = initialTranslateX + deltaX;
+                    this.translateY = initialTranslateY + deltaY;
+
+                    this.applyTransform();
+                }
+            }
+        };
+
+        this.boundPanTouchEnd = () => {
+            isDragging = false;
+            dragTouchId = null;
+        };
+
+        this.boundPanTouchCancel = () => {
+            isDragging = false;
+            dragTouchId = null;
+        };
+
+        this.pageContainer.addEventListener('touchstart', this.boundPanTouchStart);
+        this.pageContainer.addEventListener('touchmove', this.boundPanTouchMove, { passive: false });
+        this.pageContainer.addEventListener('touchend', this.boundPanTouchEnd);
+        this.pageContainer.addEventListener('touchcancel', this.boundPanTouchCancel);
+    }
+
     private isClickInViewerArea(e: MouseEvent): boolean {
-        const header = document.getElementById('header');
-        const footer = document.getElementById('footer');
-        const viewer = document.getElementById('omega-viewer');
-
-        if (!viewer) return false;
-
-        const viewerRect = viewer.getBoundingClientRect();
-        const headerRect = header ? header.getBoundingClientRect() : null;
-        const footerRect = footer ? footer.getBoundingClientRect() : null;
-
-        // Check if click Y position is within viewer bounds
+        const headerRect = this.header ? this.header.getBoundingClientRect() : null;
+        const footerRect = this.footer ? this.footer.getBoundingClientRect() : null;
         const clickY = e.clientY;
 
-        // Prevent navigation if in header
         if (headerRect && clickY < headerRect.bottom) {
             return false;
         }
 
-        // Prevent navigation if in footer
         if (footerRect && clickY > footerRect.top) {
             return false;
         }
@@ -307,22 +414,11 @@ class OmegaViewer {
     }
 
     private isTouchInViewerArea(touchY: number): boolean {
-        const header = document.getElementById('header');
-        const footer = document.getElementById('footer');
-        const viewer = document.getElementById('omega-viewer');
-
-        if (!viewer) return false;
-
-        const viewerRect = viewer.getBoundingClientRect();
-        const headerRect = header ? header.getBoundingClientRect() : null;
-        const footerRect = footer ? footer.getBoundingClientRect() : null;
-
         const scrollY = window.scrollY;
         const absoluteTouchY = touchY + scrollY;
-        const headerHeight = header ? header.offsetHeight : 0;
-        const footerTop = footer ? footer.offsetTop : document.documentElement.scrollHeight;
+        const headerHeight = this.header ? this.header.offsetHeight : 0;
+        const footerTop = this.footer ? this.footer.offsetTop : document.documentElement.scrollHeight;
 
-        // Check if touch is in viewer area (not in header or footer)
         if (absoluteTouchY < headerHeight) {
             return false;
         }
@@ -337,51 +433,65 @@ class OmegaViewer {
     private handleScroll(): void {
         if (!this.isInfiniteScrollMode) return;
 
-        // Debounce scroll event
         if (this.scrollTimeout !== null) {
             clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = null;
         }
 
         this.scrollTimeout = window.setTimeout(() => {
             this.checkAndLoadAdjacentImages();
             this.updateCurrentPageIndicator();
             this.updatePageIndicatorVisibility();
-        }, 100);
+            this.scrollTimeout = null;
+        }, OmegaViewer.SCROLL_DEBOUNCE_MS);
+    }
+
+    public destroy(): void {
+        if (this.scrollTimeout !== null) {
+            clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = null;
+        }
+
+        window.removeEventListener('scroll', this.boundHandleScroll);
+        document.removeEventListener('keydown', this.boundHandleKeydown);
+        document.removeEventListener('touchstart', this.boundTouchStart);
+        document.removeEventListener('touchend', this.boundTouchEnd);
+        document.removeEventListener('touchstart', this.boundPinchTouchStart);
+        document.removeEventListener('touchmove', this.boundPinchTouchMove);
+
+        this.pageContainer.removeEventListener('touchstart', this.boundPanTouchStart);
+        this.pageContainer.removeEventListener('touchmove', this.boundPanTouchMove);
+        this.pageContainer.removeEventListener('touchend', this.boundPanTouchEnd);
+        this.pageContainer.removeEventListener('touchcancel', this.boundPanTouchCancel);
+        this.pageContainer.removeEventListener('contextmenu', this.boundContextMenu);
     }
 
     private updatePageIndicatorVisibility(): void {
-        const header = document.getElementById('header');
-        const footer = document.getElementById('footer');
-        const pageIndicator = document.getElementById('page-indicator');
-
-        if (!pageIndicator) return;
+        if (!this.pageIndicator) return;
 
         const scrollTop = window.scrollY;
         const viewportHeight = window.innerHeight;
         const scrollBottom = scrollTop + viewportHeight;
 
-        const headerHeight = header ? header.offsetHeight : 0;
-        const footerTop = footer ? footer.offsetTop : document.documentElement.scrollHeight;
+        const headerHeight = this.header ? this.header.offsetHeight : 0;
+        const footerTop = this.footer ? this.footer.offsetTop : document.documentElement.scrollHeight;
 
-        // Check if we're viewing the comic (not header or footer)
-        const isInHeader = scrollBottom < headerHeight + viewportHeight * 0.3;
-        const isInFooter = scrollTop > footerTop - viewportHeight * 0.7;
+        const isInHeader = scrollBottom < headerHeight + viewportHeight * OmegaViewer.HEADER_VISIBILITY_THRESHOLD;
+        const isInFooter = scrollTop > footerTop - viewportHeight * OmegaViewer.FOOTER_VISIBILITY_THRESHOLD;
 
         if (isInHeader || isInFooter) {
-            pageIndicator.style.display = 'none';
+            this.pageIndicator.style.display = 'none';
         } else {
-            pageIndicator.style.display = 'block';
+            this.pageIndicator.style.display = 'block';
         }
     }
 
     private checkAndLoadAdjacentImages(): void {
         const scrollTop = window.scrollY;
         const viewportHeight = window.innerHeight;
-        const threshold = viewportHeight * 1.5; // Load when within 1.5 viewports (preload earlier)
-        const header = document.getElementById('header');
-        const headerOffset = header ? header.offsetHeight : 0;
+        const threshold = viewportHeight * OmegaViewer.LOAD_THRESHOLD_MULTIPLIER;
+        const headerOffset = this.header ? this.header.offsetHeight : 0;
 
-        // Check if we need to load next image
         const lastImage = this.getLastLoadedImage();
         if (lastImage) {
             const lastImageBottom = lastImage.element.offsetTop + lastImage.element.offsetHeight;
@@ -393,7 +503,6 @@ class OmegaViewer {
             }
         }
 
-        // Check if we need to load previous image - only if we haven't reached the first page
         const firstImage = this.getFirstLoadedImage();
         if (firstImage && firstImage.pageIndex > 0) {
             const firstImageTop = firstImage.element.offsetTop;
@@ -409,7 +518,6 @@ class OmegaViewer {
     private preloadImage(pageIndex: number): void {
         if (pageIndex < 0 || pageIndex >= this.config.pages.length) return;
 
-        // Just preload into cache, don't add to DOM
         const img = new Image();
         img.src = this.config.pages[pageIndex];
     }
@@ -417,9 +525,8 @@ class OmegaViewer {
     private updateCurrentPageIndicator(): void {
         const scrollTop = window.scrollY + window.innerHeight / 2;
 
-        // Find which image is currently in view
         let currentImageIndex = this.config.currentPage;
-        for (const [pageIndex, loadedImage] of this.loadedImages) {
+        for (const [pageIndex, loadedImage] of this.loadedImages.entries()) {
             const imageTop = loadedImage.element.offsetTop;
             const imageBottom = imageTop + loadedImage.element.offsetHeight;
 
@@ -432,24 +539,15 @@ class OmegaViewer {
         if (currentImageIndex !== this.config.currentPage) {
             this.config.currentPage = currentImageIndex;
             this.currentPageElement.textContent = (currentImageIndex + 1).toString();
-            // When page changes, preload adjacent images
             this.preloadAdjacentImages(currentImageIndex);
         }
     }
 
     private preloadAdjacentImages(pageIndex: number): void {
-        // Preload next 2 images
         this.preloadImage(pageIndex + 1);
         this.preloadImage(pageIndex + 2);
-        // Preload previous 2 images
         this.preloadImage(pageIndex - 1);
         this.preloadImage(pageIndex - 2);
-    }
-
-    private loadInitialPage(pageIndex: number): void {
-        this.config.currentPage = pageIndex;
-        this.currentPageElement.textContent = (pageIndex + 1).toString();
-        this.loadImageAtEnd(pageIndex);
     }
 
     private loadImageAtEnd(pageIndex: number): void {
@@ -465,22 +563,21 @@ class OmegaViewer {
             pageIndex: pageIndex
         };
 
-        img.onload = () => {
-            // Image loaded successfully
-        };
+        img.onload = () => {};
 
         img.onerror = () => {
             console.error(`Failed to load page ${pageIndex + 1}`);
+            img.classList.add('omega-page-error');
+            img.alt = `Failed to load page ${pageIndex + 1}`;
         };
 
         img.src = this.config.pages[pageIndex];
         this.pageContainer.appendChild(img);
         this.loadedImages.set(pageIndex, loadedImage);
 
-        // Apply current zoom level to newly loaded image
-        if (this.zoomLevel !== 1.0) {
-            img.style.transform = `scale(${this.zoomLevel})`;
-            img.style.transformOrigin = 'center center';
+        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
+            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
+            img.style.transformOrigin = '0 0';
         }
     }
 
@@ -497,12 +594,10 @@ class OmegaViewer {
             pageIndex: pageIndex
         };
 
-        // Store current scroll position
         const currentScrollHeight = document.documentElement.scrollHeight;
         const currentScrollTop = window.scrollY;
 
         img.onload = () => {
-            // Restore scroll position after image loads
             const newScrollHeight = document.documentElement.scrollHeight;
             const heightDiff = newScrollHeight - currentScrollHeight;
             window.scrollTo(0, currentScrollTop + heightDiff);
@@ -510,22 +605,23 @@ class OmegaViewer {
 
         img.onerror = () => {
             console.error(`Failed to load page ${pageIndex + 1}`);
+            img.classList.add('omega-page-error');
+            img.alt = `Failed to load page ${pageIndex + 1}`;
         };
 
         img.src = this.config.pages[pageIndex];
         this.pageContainer.insertBefore(img, this.pageContainer.firstChild);
         this.loadedImages.set(pageIndex, loadedImage);
 
-        // Apply current zoom level to newly loaded image
-        if (this.zoomLevel !== 1.0) {
-            img.style.transform = `scale(${this.zoomLevel})`;
-            img.style.transformOrigin = 'center center';
+        if (this.zoomLevel !== 1.0 || this.translateX !== 0 || this.translateY !== 0) {
+            img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
+            img.style.transformOrigin = '0 0';
         }
     }
 
     private getFirstLoadedImage(): LoadedImage | null {
         let first: LoadedImage | null = null;
-        for (const [_, loadedImage] of this.loadedImages) {
+        for (const loadedImage of this.loadedImages.values()) {
             if (first === null || loadedImage.pageIndex < first.pageIndex) {
                 first = loadedImage;
             }
@@ -535,7 +631,7 @@ class OmegaViewer {
 
     private getLastLoadedImage(): LoadedImage | null {
         let last: LoadedImage | null = null;
-        for (const [_, loadedImage] of this.loadedImages) {
+        for (const loadedImage of this.loadedImages.values()) {
             if (last === null || loadedImage.pageIndex > last.pageIndex) {
                 last = loadedImage;
             }
@@ -558,43 +654,32 @@ class OmegaViewer {
     }
 
     private navigateToPage(pageIndex: number): void {
-        // Clear all loaded images and load just this page
         this.isInfiniteScrollMode = false;
         this.pageContainer.innerHTML = '';
         this.loadedImages.clear();
+
+        this.zoomLevel = 1.0;
+        this.translateX = 0;
+        this.translateY = 0;
 
         this.config.currentPage = pageIndex;
         this.currentPageElement.textContent = (pageIndex + 1).toString();
 
         this.loadImageAtEnd(pageIndex);
-
-        // Preload adjacent images
         this.preloadAdjacentImages(pageIndex);
 
-        // Scroll to viewer (skip header)
-        const header = document.getElementById('header');
-        const headerOffset = header ? header.offsetHeight : 0;
+        const headerOffset = this.header ? this.header.offsetHeight : 0;
         window.scrollTo(0, headerOffset);
 
-        // Update page indicator visibility
         this.updatePageIndicatorVisibility();
 
-        // Re-enable infinite scroll after a short delay
         setTimeout(() => {
             this.isInfiniteScrollMode = true;
-        }, 500);
+        }, OmegaViewer.INFINITE_SCROLL_DELAY_MS);
     }
 
-    private showLoading(): void {
-        this.loadingElement.classList.add('active');
-    }
-
-    private hideLoading(): void {
-        this.loadingElement.classList.remove('active');
-    }
 }
 
-// Initialize the viewer when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new OmegaViewer();
 });
