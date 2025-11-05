@@ -297,9 +297,10 @@ class OmegaViewer {
                 initialTranslateX = this.translateX;
                 initialTranslateY = this.translateY;
 
+                const containerRect = this.pageContainer.getBoundingClientRect();
                 const center = getPinchCenter(e.touches[0], e.touches[1]);
-                pinchCenterX = center.x;
-                pinchCenterY = center.y;
+                pinchCenterX = center.x - containerRect.left;
+                pinchCenterY = center.y - containerRect.top;
             } else {
                 isPinching = false;
             }

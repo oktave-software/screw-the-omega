@@ -213,9 +213,10 @@ class OmegaViewer {
                 initialZoom = this.zoomLevel;
                 initialTranslateX = this.translateX;
                 initialTranslateY = this.translateY;
+                const containerRect = this.pageContainer.getBoundingClientRect();
                 const center = getPinchCenter(e.touches[0], e.touches[1]);
-                pinchCenterX = center.x;
-                pinchCenterY = center.y;
+                pinchCenterX = center.x - containerRect.left;
+                pinchCenterY = center.y - containerRect.top;
             }
             else {
                 isPinching = false;
@@ -241,7 +242,6 @@ class OmegaViewer {
         document.addEventListener('touchmove', this.boundPinchTouchMove, { passive: false });
     }
     applyTransform() {
-        // Apply transform to container instead of individual images (industry standard)
         this.pageContainer.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
         this.pageContainer.style.transformOrigin = '0 0';
     }
