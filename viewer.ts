@@ -100,14 +100,60 @@ class OmegaViewer {
     }
 
     private preloadAllImages(): void {
-        // Load cover first (index 0) into DOM
-        this.loadImageAtEnd(0);
+        // Load images sequentially starting with cover
         this.config.currentPage = 0;
         this.currentPageElement.textContent = '1';
+        this.loadImageSequentially(0);
+    }
 
-        // Then load all remaining images into DOM in sequence
-        for (let i = 1; i < this.config.pages.length; i++) {
-            this.loadImageAtEnd(i);
+    private loadImageSequentially(pageIndex: number): void {
+        if (pageIndex >= this.config.pages.length) {
+            // All images loaded
+            return;
+        }
+
+        // Load this image and wait for it to complete before loading next
+        this.loadImageWithCallback(pageIndex, () => {
+            // Once loaded, load the next image
+            this.loadImageSequentially(pageIndex + 1);
+        });
+    }
+
+    private loadImageWithCallback(pageIndex: number, onComplete: () => void): void {
+        if (this.loadedImages.has(pageIndex)) {
+            onComplete();
+            return;
+        }
+
+        const img = document.createElement('img');
+        img.className = 'omega-page';
+        img.dataset.pageIndex = pageIndex.toString();
+        img.alt = `Screw the Omega Page ${pageIndex + 1}`;
+
+        const loadedImage: LoadedImage = {
+            element: img,
+            pageIndex: pageIndex
+        };
+
+        img.onload = () => {
+            // Image loaded successfully, trigger callback
+            onComplete();
+        };
+
+        img.onerror = () => {
+            console.error(`Failed to load page ${pageIndex + 1}`);
+            // Continue loading next image even if this one fails
+            onComplete();
+        };
+
+        img.src = this.config.pages[pageIndex];
+        this.pageContainer.appendChild(img);
+        this.loadedImages.set(pageIndex, loadedImage);
+
+        // Apply current zoom level to newly loaded image
+        if (this.zoomLevel !== 1.0) {
+            img.style.transform = `scale(${this.zoomLevel})`;
+            img.style.transformOrigin = 'center center';
         }
     }
 
