@@ -33,10 +33,27 @@ const fs = require('fs');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1000); // Extra wait for image rendering
 
-  // Take screenshot
-  await page.screenshot({ path: screenshotPath, fullPage: false });
+  // Scroll down to the comic viewer area
+  await page.evaluate(() => {
+    const header = document.getElementById('header');
+    if (header) {
+      window.scrollTo(0, header.offsetHeight);
+    }
+  });
+  await page.waitForTimeout(500);
 
+  // Take normal screenshot
+  await page.screenshot({ path: screenshotPath, fullPage: false });
   console.log('Screenshot saved to test/temp/test-screenshot.png');
+
+  // Test browser zoom by applying page scale
+  const zoomedPath = path.join(tempDir, 'test-screenshot-zoomed.png');
+  const client = await context.newCDPSession(page);
+  await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 1.5 });
+  await page.waitForTimeout(500);
+
+  await page.screenshot({ path: zoomedPath, fullPage: false });
+  console.log('Zoomed screenshot saved to test/temp/test-screenshot-zoomed.png');
 
   await browser.close();
 })();

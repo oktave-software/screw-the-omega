@@ -20,6 +20,9 @@ class OmegaViewer {
     private loadedImages: Map<number, LoadedImage>;
     private isInfiniteScrollMode: boolean;
     private scrollTimeout: number | null;
+    private zoomLevel: number;
+    private minZoom: number;
+    private maxZoom: number;
 
     constructor() {
         // Initialize page configuration
@@ -67,6 +70,9 @@ class OmegaViewer {
         this.loadedImages = new Map();
         this.isInfiniteScrollMode = true;
         this.scrollTimeout = null;
+        this.zoomLevel = 1.0;
+        this.minZoom = 1.0;
+        this.maxZoom = 5.0;
 
         // Get DOM elements
         this.pageContainer = document.getElementById('page-container') as HTMLElement;
@@ -133,6 +139,9 @@ class OmegaViewer {
         // Touch swipe navigation
         this.setupTouchNavigation();
 
+        // Pinch-to-zoom
+        this.setupPinchZoom();
+
         // Prevent context menu on long press (mobile)
         document.addEventListener('contextmenu', (e: Event) => {
             e.preventDefault();
@@ -179,6 +188,49 @@ class OmegaViewer {
 
     private handleSwipe(startY: number): void {
         // This will be set by setupTouchNavigation
+    }
+
+    private setupPinchZoom(): void {
+        let initialDistance = 0;
+        let initialZoom = 1.0;
+
+        const getDistance = (touch1: Touch, touch2: Touch): number => {
+            const dx = touch1.clientX - touch2.clientX;
+            const dy = touch1.clientY - touch2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+
+        document.addEventListener('touchstart', (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                // Prevent default zoom behavior
+                e.preventDefault();
+                initialDistance = getDistance(e.touches[0], e.touches[1]);
+                initialZoom = this.zoomLevel;
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const currentDistance = getDistance(e.touches[0], e.touches[1]);
+                const scale = currentDistance / initialDistance;
+                const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, initialZoom * scale));
+
+                if (newZoom !== this.zoomLevel) {
+                    this.zoomLevel = newZoom;
+                    this.applyZoom();
+                }
+            }
+        }, { passive: false });
+    }
+
+    private applyZoom(): void {
+        // Apply zoom transform to all loaded images
+        for (const [_, loadedImage] of this.loadedImages) {
+            const img = loadedImage.element;
+            img.style.transform = `scale(${this.zoomLevel})`;
+            img.style.transformOrigin = 'center center';
+        }
     }
 
     private isClickInViewerArea(e: MouseEvent): boolean {
@@ -378,6 +430,12 @@ class OmegaViewer {
         img.src = this.config.pages[pageIndex];
         this.pageContainer.appendChild(img);
         this.loadedImages.set(pageIndex, loadedImage);
+
+        // Apply current zoom level to newly loaded image
+        if (this.zoomLevel !== 1.0) {
+            img.style.transform = `scale(${this.zoomLevel})`;
+            img.style.transformOrigin = 'center center';
+        }
     }
 
     private loadImageAtStart(pageIndex: number): void {
@@ -411,6 +469,12 @@ class OmegaViewer {
         img.src = this.config.pages[pageIndex];
         this.pageContainer.insertBefore(img, this.pageContainer.firstChild);
         this.loadedImages.set(pageIndex, loadedImage);
+
+        // Apply current zoom level to newly loaded image
+        if (this.zoomLevel !== 1.0) {
+            img.style.transform = `scale(${this.zoomLevel})`;
+            img.style.transformOrigin = 'center center';
+        }
     }
 
     private getFirstLoadedImage(): LoadedImage | null {

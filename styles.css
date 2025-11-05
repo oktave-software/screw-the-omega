@@ -119,18 +119,18 @@ body {
 }
 
 .omega-page {
-    width: 100vw;
+    width: 100%;
+    max-width: 100%;
     height: auto;
     display: block;
     /* Portrait displays: use full width. Landscape: constrained by media query below */
     /* Height is auto to preserve aspect ratio, allows vertical scrolling */
 }
 
-/* For landscape/wide displays: constrain width to viewport height (1:1 ratio) */
+/* For landscape/wide displays: constrain to a reasonable max-width */
 @media (min-aspect-ratio: 1/1) {
     .omega-page {
-        width: 100vh;
-        max-width: 100vh;
+        max-width: 800px;
     }
 }
 
