@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Read Chapter 1 of Screw the Omega - An urban fantasy webcomic about demon hunter Neji Okalu in New York City.">
+    <title>Chapter 1 - Screw the Omega</title>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-88V5L3MZ6Q"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-88V5L3MZ6Q');
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
+        }
+
+        #comic-reader {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            display: block;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #E6E6FA;
+            font-size: 1.2rem;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .loading.hidden {
+            display: none;
+        }
+
+        .error {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #9370DB;
+            font-size: 1rem;
+            text-align: center;
+            max-width: 600px;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .error a {
+            color: #BA55D3;
+            text-decoration: underline;
+        }
+
+        noscript {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #E6E6FA;
+            text-align: center;
+            max-width: 500px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <noscript>
+        <p>JavaScript is required to load the comic reader. Please enable JavaScript in your browser settings.</p>
+        <p><a href="index.html" style="color: #9370DB;">Return to home page</a></p>
+    </noscript>
+
+    <div id="loading-indicator" class="loading" role="status" aria-live="polite">
+        Loading comic reader...
+    </div>
+
+    <iframe
+        id="comic-reader"
+        title="kthoom Comic Reader - Chapter 1"
+        allow="fullscreen"
+        sandbox="allow-scripts allow-same-origin allow-forms"
+        loading="lazy">
+    </iframe>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // DOM elements
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const iframe = document.getElementById('comic-reader');
+
+            // Configuration
+            const KTHOOM_BASE_URL = 'https://codedread.github.io/kthoom/index.html';
+            const CHAPTER_FILE = 'chapter1.cbz';
+            const KTHOOM_PARAMS = {
+                preventUserOpeningBooks: 'true',
+                doNotPromptOnClose: 'true'
+            };
+
+            /**
+             * Constructs the full URL to the CBZ file
+             * @returns {string} Full URL to chapter CBZ file
+             */
+            function getChapterUrl() {
+                const baseUrl = window.location.origin + window.location.pathname.replace('/reader.html', '');
+                return `${baseUrl}/${CHAPTER_FILE}`;
+            }
+
+            /**
+             * Builds the kthoom reader URL with all parameters
+             * @returns {string} Complete kthoom URL with encoded parameters
+             */
+            function buildKthoomUrl() {
+                const cbzUrl = getChapterUrl();
+                const params = new URLSearchParams({
+                    bookUri: cbzUrl,
+                    ...KTHOOM_PARAMS
+                });
+                return `${KTHOOM_BASE_URL}?${params.toString()}`;
+            }
+
+            /**
+             * Hides the loading indicator
+             */
+            function hideLoadingIndicator() {
+                if (loadingIndicator) {
+                    loadingIndicator.classList.add('hidden');
+                    loadingIndicator.setAttribute('aria-hidden', 'true');
+                }
+            }
+
+            /**
+             * Shows an error message to the user
+             * @param {string} message - Error message to display
+             */
+            function showError(message) {
+                hideLoadingIndicator();
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.setAttribute('role', 'alert');
+                errorDiv.innerHTML = `
+                    <p>${message}</p>
+                    <p><a href="index.html">Return to home page</a></p>
+                `;
+                document.body.appendChild(errorDiv);
+            }
+
+            /**
+             * Initialize the comic reader
+             */
+            function initReader() {
+                try {
+                    // Build and set iframe source
+                    const kthoomUrl = buildKthoomUrl();
+                    iframe.src = kthoomUrl;
+
+                    // Handle iframe load event
+                    iframe.addEventListener('load', hideLoadingIndicator);
+
+                    // Handle iframe error
+                    iframe.addEventListener('error', function() {
+                        showError('Failed to load the comic reader. Please try again later.');
+                    });
+
+                    // Timeout fallback - hide loading after 10 seconds regardless
+                    setTimeout(hideLoadingIndicator, 10000);
+
+                } catch (error) {
+                    console.error('Error initializing reader:', error);
+                    showError('An error occurred while loading the comic reader.');
+                }
+            }
+
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initReader);
+            } else {
+                initReader();
+            }
+        })();
+    </script>
+</body>
+</html>

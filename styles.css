@@ -67,16 +67,69 @@ body {
     color: #E6E6FA;
 }
 
-/* Viewer Section */
-#omega-viewer {
-    position: relative;
-    width: 100vw;
+/* Main Content Section */
+#main-content {
+    width: 100%;
     min-height: 100vh;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
+    padding: 60px 20px;
     background-color: #000000;
-    scroll-margin-top: 0;
+}
+
+.chapter-list {
+    max-width: 800px;
+    width: 100%;
+}
+
+.chapter-list h2 {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 2.5rem;
+    color: #9370DB;
+    margin-bottom: 40px;
+    text-align: center;
+    letter-spacing: 0.1em;
+}
+
+.chapter-link-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.chapter-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    border: 2px solid #9370DB;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.chapter-link:hover {
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    border-color: #BA55D3;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(147, 112, 219, 0.3);
+}
+
+.chapter-number {
+    font-size: 2rem;
+    color: #9370DB;
+    font-weight: bold;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+}
+
+.chapter-desc {
+    font-size: 1.2rem;
+    color: #E6E6FA;
 }
 
 /* Footer Section */
@@ -108,110 +161,6 @@ body {
     text-decoration: underline;
 }
 
-#page-container {
-    position: relative;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-.omega-page {
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    display: block;
-    user-select: none;
-    /* Portrait displays: use full width. Landscape: constrained by media query below */
-    /* Height is auto to preserve aspect ratio, allows vertical scrolling */
-}
-
-.omega-page-error {
-    min-height: 400px;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    border: 2px dashed #9370DB;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-
-.omega-page-error::after {
-    content: '⚠ Image failed to load';
-    color: #9370DB;
-    font-size: 1.2rem;
-    text-align: center;
-    padding: 20px;
-}
-
-/* For landscape/wide displays: constrain to a reasonable max-width */
-@media (min-aspect-ratio: 1/1) {
-    .omega-page {
-        max-width: 800px;
-    }
-}
-
-/* Navigation areas */
-.nav-area {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    width: 33.333%;
-    cursor: pointer;
-    z-index: 10;
-    background: transparent;
-    border: none;
-    padding: 0;
-    outline: none;
-    user-select: none;
-}
-
-.nav-area:focus-visible {
-    outline: 3px solid #9370DB;
-    outline-offset: -3px;
-}
-
-#nav-left {
-    left: 0;
-    cursor: w-resize;
-}
-
-#nav-right {
-    right: 0;
-    cursor: e-resize;
-}
-
-/* For landscape/wide displays: position nav areas relative to image */
-@media (min-aspect-ratio: 1/1) {
-    .nav-area {
-        width: calc((100vw - 100vh) / 2 + 100vh / 3);
-    }
-
-    #nav-left {
-        left: 0;
-    }
-
-    #nav-right {
-        right: 0;
-    }
-}
-
-/* Page indicator */
-#page-indicator {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    z-index: 20;
-    backdrop-filter: blur(10px);
-}
-
 /* Mobile specific styles */
 @media (max-width: 768px) {
     #header h1 {
@@ -228,27 +177,20 @@ body {
         line-height: 1.6;
     }
 
-    #footer p {
+    .chapter-list h2 {
+        font-size: 2rem;
+    }
+
+    .chapter-number {
+        font-size: 1.5rem;
+    }
+
+    .chapter-desc {
         font-size: 1rem;
     }
 
-    #page-indicator {
-        bottom: 10px;
-        font-size: 0.8rem;
-        padding: 6px 12px;
-    }
-}
-
-
-/* Touch device optimizations */
-@media (hover: none) and (pointer: coarse) {
-    .nav-area {
-        cursor: default;
-    }
-
-    #nav-left,
-    #nav-right {
-        cursor: default;
+    #footer p {
+        font-size: 1rem;
     }
 }
 
@@ -267,12 +209,19 @@ body {
         font-size: 0.9rem;
     }
 
-    #footer p {
+    .chapter-list h2 {
+        font-size: 1.5rem;
+    }
+
+    .chapter-number {
+        font-size: 1.2rem;
+    }
+
+    .chapter-desc {
         font-size: 0.9rem;
     }
 
-    #page-indicator {
-        font-size: 0.75rem;
-        padding: 5px 10px;
+    #footer p {
+        font-size: 0.9rem;
     }
 }

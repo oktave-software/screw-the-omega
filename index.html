@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- maximum-scale synced with maxZoom in viewer.ts (5.0) -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>Screw the Omega</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="An independent webcomic about Neji Okalu, a demon hunter in New York City. Urban fantasy featuring supernatural entities and young BIPOC in the inner city.">
+    <title>Screw the Omega - Urban Fantasy Webcomic</title>
 
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-88V5L3MZ6Q"></script>
@@ -24,27 +24,22 @@
         <p class="blurb">Screw the Omega is an independent webcomic about Neji Okalu, a Nigerian-born, American raised first-year college student, who moonlights as a demon hunter in New York City. As an urban fantasy, the story centers around supernatural entities and how they impact the lives of young BIPOC in the inner city.</p>
     </header>
 
-    <!-- Viewer Section -->
-    <main id="omega-viewer" role="main" aria-label="Comic viewer">
-        <div id="page-container" role="region" aria-label="Comic pages">
-            <!-- Images will be dynamically inserted here -->
-        </div>
-
-        <!-- Navigation overlays -->
-        <button id="nav-left" class="nav-area" aria-label="Previous page" tabindex="0"></button>
-        <button id="nav-right" class="nav-area" aria-label="Next page" tabindex="0"></button>
-
-        <!-- Page indicator -->
-        <div id="page-indicator" role="status" aria-live="polite" aria-label="Page indicator">
-            <span id="current-page">1</span> / <span id="total-pages">0</span>
-        </div>
+    <!-- Main Content Section -->
+    <main id="main-content" role="main">
+        <section class="chapter-list">
+            <h2>Chapters</h2>
+            <div class="chapter-link-container">
+                <a href="reader.html" class="chapter-link" aria-label="Read Chapter 1">
+                    <span class="chapter-number">Chapter 1</span>
+                    <span class="chapter-desc">Start Reading →</span>
+                </a>
+            </div>
+        </section>
     </main>
 
     <!-- Footer Section -->
     <footer id="footer" role="contentinfo">
         <p>Follow on <a href="https://www.instagram.com/nine0uh/" target="_blank" rel="noopener noreferrer">Instagram</a> | Support on <a href="https://www.patreon.com/Nine0uh" target="_blank" rel="noopener noreferrer">Patreon</a></p>
     </footer>
-
-    <script src="viewer.js"></script>
 </body>
 </html>

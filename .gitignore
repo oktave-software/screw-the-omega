@@ -1,12 +1,27 @@
-# Node modules
+# Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Compiled JavaScript (generated from TypeScript)
-*.js.map
-# Note: viewer.js is tracked because this is deployed via GitHub Pages
+# Large assets
+images/
+*.cbz
+*.cbr
+*.cbt
+
+# Build and temporary files
+dist/
+build/
+*.log
+.cache/
+test/temp/
+coverage/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
 
 # Operating System files
 .DS_Store
@@ -33,14 +48,6 @@ Desktop.ini
 .claudesync/
 CLAUDE.md
 
-# Build and temporary files
-dist/
-build/
-*.log
-.cache/
-test/temp/
-
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Source maps
+*.js.map
+*.css.map
