@@ -15,6 +15,14 @@
         gtag('config', 'G-88V5L3MZ6Q');
     </script>
 
+    <!-- fflate for CBZ extraction - High performance, Web Worker ready -->
+    <script type="module">
+        // Import fflate from CDN
+        import { unzip } from "https://cdn.jsdelivr.net/npm/fflate@0.8.2/esm/browser.js";
+
+        window.fflate = { unzip };
+    </script>
+
     <style>
         * {
             margin: 0;
@@ -23,18 +31,70 @@
         }
 
         body {
-            overflow: hidden;
             background-color: #000;
             font-family: 'Courier New', monospace;
+            overflow-x: hidden;
         }
 
-        #comic-reader {
-            width: 100vw;
-            height: 100vh;
+        /* Header navigation */
+        #reader-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-bottom: 2px solid #9370DB;
+        }
+
+        #reader-header.hidden {
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .header-button {
+            background-color: #9370DB;
+            color: #000;
             border: none;
-            display: block;
+            padding: 0.5rem 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s;
         }
 
+        .header-button:hover {
+            background-color: #BA55D3;
+        }
+
+        .chapter-title {
+            color: #E6E6FA;
+            font-size: 1rem;
+        }
+
+        /* Comic container */
+        #comic-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px 40px;
+        }
+
+        /* Individual comic page */
+        .comic-page {
+            width: 100%;
+            display: block;
+            margin-bottom: 0;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        /* Loading indicator */
         .loading {
             position: fixed;
             top: 50%;
@@ -46,10 +106,26 @@
             z-index: 10;
         }
 
+        .loading-spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #9370DB;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .loading.hidden {
             display: none;
         }
 
+        /* Error message */
         .error {
             position: fixed;
             top: 50%;
@@ -61,6 +137,8 @@
             max-width: 600px;
             padding: 20px;
             z-index: 10;
+            background-color: rgba(0, 0, 0, 0.95);
+            border: 2px solid #9370DB;
         }
 
         .error a {
@@ -68,6 +146,7 @@
             text-decoration: underline;
         }
 
+        /* Noscript message */
         noscript {
             position: fixed;
             top: 50%;
@@ -78,6 +157,46 @@
             max-width: 500px;
             padding: 20px;
         }
+
+        /* Page counter */
+        #page-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(147, 112, 219, 0.9);
+            color: #000;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            z-index: 999;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            #comic-container {
+                padding: 60px 0 40px;
+            }
+
+            #reader-header {
+                padding: 0.75rem;
+            }
+
+            .header-button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+
+            .chapter-title {
+                font-size: 0.9rem;
+            }
+
+            #page-counter {
+                bottom: 10px;
+                right: 10px;
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -86,113 +205,208 @@
         <p><a href="index.html" style="color: #9370DB;">Return to home page</a></p>
     </noscript>
 
+    <!-- Header navigation -->
+    <header id="reader-header">
+        <a href="index.html" class="header-button">← Back to Chapters</a>
+        <div class="chapter-title">Chapter 1</div>
+        <button id="toggle-header" class="header-button">Hide Header</button>
+    </header>
+
+    <!-- Loading indicator -->
     <div id="loading-indicator" class="loading" role="status" aria-live="polite">
-        Loading comic reader...
+        <div class="loading-spinner"></div>
+        <p>Loading Chapter 1...</p>
     </div>
 
-    <iframe
-        id="comic-reader"
-        title="kthoom Comic Reader - Chapter 1"
-        allow="fullscreen"
-        sandbox="allow-scripts allow-same-origin allow-forms"
-        loading="lazy">
-    </iframe>
+    <!-- Comic pages container -->
+    <main id="comic-container" role="main"></main>
+
+    <!-- Page counter -->
+    <div id="page-counter" style="display: none;">Page 1 / 1</div>
 
     <script>
         (function() {
             'use strict';
 
+            // Configuration
+            const CHAPTER_FILE = 'assets/chapter1.cbz';
+
             // DOM elements
             const loadingIndicator = document.getElementById('loading-indicator');
-            const iframe = document.getElementById('comic-reader');
+            const comicContainer = document.getElementById('comic-container');
+            const pageCounter = document.getElementById('page-counter');
+            const readerHeader = document.getElementById('reader-header');
+            const toggleHeaderBtn = document.getElementById('toggle-header');
 
-            // Configuration
-            const KTHOOM_BASE_URL = 'https://codedread.github.io/kthoom/index.html';
-            const CHAPTER_FILE = 'assets/chapter1.cbz';
-            const KTHOOM_PARAMS = {
-                preventUserOpeningBooks: 'true',
-                doNotPromptOnClose: 'true'
-            };
-
-            /**
-             * Constructs the full URL to the CBZ file
-             * @returns {string} Full URL to chapter CBZ file
-             */
-            function getChapterUrl() {
-                const baseUrl = window.location.origin + window.location.pathname.replace('/reader.html', '');
-                return `${baseUrl}/${CHAPTER_FILE}`;
-            }
-
-            /**
-             * Builds the kthoom reader URL with all parameters
-             * @returns {string} Complete kthoom URL with encoded parameters
-             */
-            function buildKthoomUrl() {
-                const cbzUrl = getChapterUrl();
-                const params = new URLSearchParams({
-                    bookUri: cbzUrl,
-                    ...KTHOOM_PARAMS
-                });
-                return `${KTHOOM_BASE_URL}?${params.toString()}`;
-            }
-
-            /**
-             * Hides the loading indicator
-             */
-            function hideLoadingIndicator() {
-                if (loadingIndicator) {
-                    loadingIndicator.classList.add('hidden');
-                    loadingIndicator.setAttribute('aria-hidden', 'true');
-                }
-            }
+            let totalPages = 0;
+            let currentPage = 0;
+            let headerHidden = false;
 
             /**
              * Shows an error message to the user
-             * @param {string} message - Error message to display
              */
             function showError(message) {
-                hideLoadingIndicator();
+                loadingIndicator.classList.add('hidden');
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'error';
                 errorDiv.setAttribute('role', 'alert');
                 errorDiv.innerHTML = `
+                    <p><strong>Error loading comic</strong></p>
                     <p>${message}</p>
-                    <p><a href="index.html">Return to home page</a></p>
+                    <p style="margin-top: 1rem;"><a href="index.html">Return to home page</a></p>
                 `;
                 document.body.appendChild(errorDiv);
             }
 
             /**
-             * Initialize the comic reader
+             * Sorts image filenames naturally (handles Pg01, Pg02, etc.)
              */
-            function initReader() {
-                try {
-                    // Build and set iframe source
-                    const kthoomUrl = buildKthoomUrl();
-                    iframe.src = kthoomUrl;
+            function naturalSort(a, b) {
+                return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+            }
 
-                    // Handle iframe load event
-                    iframe.addEventListener('load', hideLoadingIndicator);
+            /**
+             * Checks if a file is an image
+             */
+            function isImage(filename) {
+                const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+                return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+            }
 
-                    // Handle iframe error
-                    iframe.addEventListener('error', function() {
-                        showError('Failed to load the comic reader. Please try again later.');
-                    });
+            /**
+             * Updates the page counter based on scroll position
+             */
+            function updatePageCounter() {
+                const images = document.querySelectorAll('.comic-page');
+                if (images.length === 0) return;
 
-                    // Timeout fallback - hide loading after 10 seconds regardless
-                    setTimeout(hideLoadingIndicator, 10000);
+                const scrollPosition = window.scrollY + window.innerHeight / 2;
 
-                } catch (error) {
-                    console.error('Error initializing reader:', error);
-                    showError('An error occurred while loading the comic reader.');
+                for (let i = 0; i < images.length; i++) {
+                    const img = images[i];
+                    const rect = img.getBoundingClientRect();
+                    const imgTop = window.scrollY + rect.top;
+                    const imgBottom = imgTop + rect.height;
+
+                    if (scrollPosition >= imgTop && scrollPosition <= imgBottom) {
+                        currentPage = i + 1;
+                        pageCounter.textContent = `Page ${currentPage} / ${totalPages}`;
+                        break;
+                    }
                 }
             }
 
-            // Initialize when DOM is ready
+            /**
+             * Toggles header visibility
+             */
+            function toggleHeader() {
+                headerHidden = !headerHidden;
+                if (headerHidden) {
+                    readerHeader.classList.add('hidden');
+                    toggleHeaderBtn.textContent = 'Show Header';
+                } else {
+                    readerHeader.classList.remove('hidden');
+                    toggleHeaderBtn.textContent = 'Hide Header';
+                }
+            }
+
+            /**
+             * Loads and displays the CBZ file using fflate (async Web Worker mode)
+             */
+            async function loadComic() {
+                try {
+                    // Wait for fflate to load
+                    if (!window.fflate) {
+                        await new Promise(resolve => {
+                            const checkInterval = setInterval(() => {
+                                if (window.fflate) {
+                                    clearInterval(checkInterval);
+                                    resolve();
+                                }
+                            }, 50);
+                        });
+                    }
+
+                    const { unzip } = window.fflate;
+
+                    // Fetch the CBZ file
+                    const response = await fetch(CHAPTER_FILE);
+                    if (!response.ok) {
+                        throw new Error(`Failed to load comic file (${response.status})`);
+                    }
+
+                    const blob = await response.blob();
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+
+                    // Unzip using fflate's async API (uses Web Workers automatically)
+                    const unzipped = await new Promise((resolve, reject) => {
+                        unzip(uint8Array, (err, result) => {
+                            if (err) reject(err);
+                            else resolve(result);
+                        });
+                    });
+
+                    // Get all image files and sort them
+                    const imageFiles = Object.keys(unzipped)
+                        .filter(filename => !filename.startsWith('__') && !filename.startsWith('.'))
+                        .filter(filename => !filename.endsWith('/')) // Skip directories
+                        .filter(filename => isImage(filename))
+                        .sort(naturalSort);
+
+                    if (imageFiles.length === 0) {
+                        throw new Error('No images found in the comic file');
+                    }
+
+                    totalPages = imageFiles.length;
+
+                    // Create and display each image
+                    for (let i = 0; i < imageFiles.length; i++) {
+                        const filename = imageFiles[i];
+                        const fileData = unzipped[filename];
+
+                        // Convert Uint8Array to Blob
+                        const imageBlob = new Blob([fileData], { type: 'application/octet-stream' });
+                        const imageUrl = URL.createObjectURL(imageBlob);
+
+                        // Create image element
+                        const img = document.createElement('img');
+                        img.src = imageUrl;
+                        img.alt = `Page ${i + 1}`;
+                        img.className = 'comic-page';
+                        img.loading = i < 3 ? 'eager' : 'lazy'; // Eager load first 3 pages
+
+                        comicContainer.appendChild(img);
+                    }
+
+                    // Hide loading indicator
+                    loadingIndicator.classList.add('hidden');
+
+                    // Show page counter
+                    pageCounter.style.display = 'block';
+                    updatePageCounter();
+
+                    // Set up scroll listener for page counter
+                    let scrollTimeout;
+                    window.addEventListener('scroll', () => {
+                        clearTimeout(scrollTimeout);
+                        scrollTimeout = setTimeout(updatePageCounter, 100);
+                    });
+
+                } catch (error) {
+                    console.error('Error loading comic:', error);
+                    showError(error.message || 'An unexpected error occurred while loading the comic.');
+                }
+            }
+
+            // Toggle header button
+            toggleHeaderBtn.addEventListener('click', toggleHeader);
+
+            // Initialize reader when DOM is ready
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initReader);
+                document.addEventListener('DOMContentLoaded', loadComic);
             } else {
-                initReader();
+                loadComic();
             }
         })();
     </script>

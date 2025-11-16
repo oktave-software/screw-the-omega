@@ -27,32 +27,50 @@ const fs = require('fs');
 
   // Wait for the page to load
   await page.waitForLoadState('networkidle');
-  console.log('Page loaded, waiting 3 seconds for iframe to load...');
-  await page.waitForTimeout(3000);
+  console.log('Page loaded, waiting for comic to load...');
 
-  // Check if iframe is present
-  const iframePresent = await page.evaluate(() => {
-    const iframe = document.getElementById('comic-reader');
-    return iframe ? {
-      present: true,
-      src: iframe.src,
-      loaded: iframe.contentDocument !== null
-    } : { present: false };
+  // Wait for loading indicator to disappear (comic has loaded)
+  try {
+    await page.waitForSelector('#loading-indicator.hidden', { timeout: 10000 });
+    console.log('Comic loaded successfully!');
+  } catch (e) {
+    console.log('Warning: Loading indicator did not disappear within 10 seconds');
+  }
+
+  // Check reader status
+  const readerStatus = await page.evaluate(() => {
+    const container = document.getElementById('comic-container');
+    const images = container ? container.querySelectorAll('.comic-page') : [];
+    const pageCounter = document.getElementById('page-counter');
+    const header = document.getElementById('reader-header');
+
+    return {
+      containerPresent: !!container,
+      imageCount: images.length,
+      pageCounterText: pageCounter ? pageCounter.textContent : null,
+      pageCounterVisible: pageCounter ? pageCounter.style.display !== 'none' : false,
+      headerPresent: !!header,
+      firstImageLoaded: images.length > 0 ? images[0].complete : false
+    };
   });
-  console.log('Iframe status:', iframePresent);
+  console.log('Reader status:', readerStatus);
 
-  // Get the constructed URL
-  const constructedUrl = await page.evaluate(() => {
-    const baseUrl = window.location.origin + window.location.pathname.replace('/reader.html', '');
-    const cbzUrl = baseUrl + '/chapter1.cbz';
-    const kthoomUrl = `https://codedread.github.io/kthoom/index.html?bookUri=${encodeURIComponent(cbzUrl)}&preventUserOpeningBooks=true&doNotPromptOnClose=true`;
-    return { baseUrl, cbzUrl, kthoomUrl };
-  });
-  console.log('Constructed URLs:', constructedUrl);
+  // Wait a bit for first images to render
+  await page.waitForTimeout(2000);
 
-  // Take screenshot
+  // Take screenshot of the reader with first page visible
   await page.screenshot({ path: screenshotPath, fullPage: false });
   console.log('Screenshot saved to test/temp/reader-screenshot.png');
+
+  // Scroll down to test infinite scroll
+  console.log('Testing infinite scroll...');
+  await page.evaluate(() => window.scrollTo(0, 500));
+  await page.waitForTimeout(500);
+
+  const scrolledPageCounter = await page.evaluate(() => {
+    return document.getElementById('page-counter')?.textContent;
+  });
+  console.log('After scrolling, page counter shows:', scrolledPageCounter);
 
   await browser.close();
 })();
