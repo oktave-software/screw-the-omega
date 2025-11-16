@@ -43,17 +43,18 @@
             left: 0;
             right: 0;
             background-color: rgba(0, 0, 0, 0.9);
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 0;
             z-index: 1000;
             border-bottom: 2px solid #9370DB;
         }
 
-        #reader-header.hidden {
-            transform: translateY(-100%);
-            transition: transform 0.3s ease;
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 20px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
         }
 
         .header-button {
@@ -67,6 +68,8 @@
             text-decoration: none;
             display: inline-block;
             transition: background-color 0.2s;
+            justify-self: start;
+            width: fit-content;
         }
 
         .header-button:hover {
@@ -76,13 +79,29 @@
         .chapter-title {
             color: #E6E6FA;
             font-size: 1rem;
+            text-align: center;
+        }
+
+        .header-page-counter {
+            background-color: #9370DB;
+            color: #000;
+            padding: 0.5rem 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            text-align: center;
+            justify-self: end;
         }
 
         /* Comic container */
         #comic-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 80px 20px 40px;
+            padding: 0 20px 40px;
+        }
+
+        /* First image starts right below header */
+        .comic-page:first-child {
+            margin-top: 66px; /* Actual measured header height (includes border) */
         }
 
         /* Individual comic page */
@@ -104,6 +123,7 @@
             font-size: 1.2rem;
             text-align: center;
             z-index: 10;
+            max-width: 90%;
         }
 
         .loading-spinner {
@@ -158,18 +178,6 @@
             padding: 20px;
         }
 
-        /* Page counter */
-        #page-counter {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: rgba(147, 112, 219, 0.9);
-            color: #000;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            z-index: 999;
-        }
 
         /* Navigation tap zones */
         .nav-zone {
@@ -210,11 +218,19 @@
         /* Mobile optimizations */
         @media (max-width: 768px) {
             #comic-container {
-                padding: 60px 0 40px;
+                padding: 0 0 40px;
+            }
+
+            .comic-page:first-child {
+                margin-top: 54px; /* Actual measured mobile header height (includes border) */
             }
 
             #reader-header {
                 padding: 0.75rem;
+            }
+
+            .header-inner {
+                padding: 0;
             }
 
             .header-button {
@@ -226,11 +242,13 @@
                 font-size: 0.9rem;
             }
 
-            #page-counter {
-                bottom: 10px;
-                right: 10px;
+            .header-page-counter {
                 padding: 0.4rem 0.8rem;
                 font-size: 0.8rem;
+            }
+
+            .loading {
+                font-size: 1rem;
             }
         }
     </style>
@@ -243,9 +261,11 @@
 
     <!-- Header navigation -->
     <header id="reader-header">
-        <a href="index.html" class="header-button">← Back to Chapters</a>
-        <div class="chapter-title">Chapter 1</div>
-        <button id="toggle-header" class="header-button">Hide Header</button>
+        <div class="header-inner">
+            <a href="index.html" class="header-button">← Home</a>
+            <div class="chapter-title">Chapter 1</div>
+            <div id="page-counter" class="header-page-counter">Page 1/35</div>
+        </div>
     </header>
 
     <!-- Loading indicator -->
@@ -261,9 +281,6 @@
     <div id="nav-left" class="nav-zone" role="button" aria-label="Previous page" tabindex="0"></div>
     <div id="nav-right" class="nav-zone" role="button" aria-label="Next page" tabindex="0"></div>
 
-    <!-- Page counter -->
-    <div id="page-counter" style="display: none;">Page 1 / 1</div>
-
     <script>
         (function() {
             'use strict';
@@ -276,13 +293,11 @@
             const comicContainer = document.getElementById('comic-container');
             const pageCounter = document.getElementById('page-counter');
             const readerHeader = document.getElementById('reader-header');
-            const toggleHeaderBtn = document.getElementById('toggle-header');
             const navLeft = document.getElementById('nav-left');
             const navRight = document.getElementById('nav-right');
 
             let totalPages = 0;
             let currentPage = 0;
-            let headerHidden = false;
 
             /**
              * Shows an error message to the user
@@ -332,23 +347,9 @@
 
                     if (scrollPosition >= imgTop && scrollPosition <= imgBottom) {
                         currentPage = i; // 0-based index
-                        pageCounter.textContent = `Page ${i + 1} / ${totalPages}`;
+                        pageCounter.textContent = `Page ${i + 1}/${totalPages}`;
                         break;
                     }
-                }
-            }
-
-            /**
-             * Toggles header visibility
-             */
-            function toggleHeader() {
-                headerHidden = !headerHidden;
-                if (headerHidden) {
-                    readerHeader.classList.add('hidden');
-                    toggleHeaderBtn.textContent = 'Show Header';
-                } else {
-                    readerHeader.classList.remove('hidden');
-                    toggleHeaderBtn.textContent = 'Hide Header';
                 }
             }
 
@@ -461,8 +462,7 @@
                     // Hide loading indicator
                     loadingIndicator.classList.add('hidden');
 
-                    // Show page counter
-                    pageCounter.style.display = 'block';
+                    // Update page counter
                     updatePageCounter();
 
                     // Set up scroll listener for page counter
@@ -477,9 +477,6 @@
                     showError(error.message || 'An unexpected error occurred while loading the comic.');
                 }
             }
-
-            // Toggle header button
-            toggleHeaderBtn.addEventListener('click', toggleHeader);
 
             // Navigation zone event listeners
             navLeft.addEventListener('click', previousPage);
