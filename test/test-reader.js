@@ -2,9 +2,22 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-(async () => {
+/**
+ * Test the reader page with screenshots
+ * @param {Object} options - Test options
+ * @param {number} options.width - Viewport width
+ * @param {number} options.height - Viewport height
+ * @param {string} options.deviceType - Device type for filename prefix ('desktop' or 'mobile')
+ */
+async function testReaderPage(options = {}) {
+  const {
+    width = 1920,
+    height = 1080,
+    deviceType = 'desktop'
+  } = options;
+
   const tempDir = path.join(__dirname, 'temp');
-  const screenshotPath = path.join(tempDir, 'reader-screenshot.png');
+  const screenshotPath = path.join(tempDir, `reader-${deviceType}-screenshot.png`);
 
   // Create temp directory if it doesn't exist
   if (!fs.existsSync(tempDir)) {
@@ -13,7 +26,7 @@ const fs = require('fs');
 
   const browser = await chromium.launch();
   const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 }
+    viewport: { width, height }
   });
   const page = await context.newPage();
 
@@ -60,7 +73,7 @@ const fs = require('fs');
 
   // Take screenshot of the reader with first page visible
   await page.screenshot({ path: screenshotPath, fullPage: false });
-  console.log('Screenshot saved to test/temp/reader-screenshot.png');
+  console.log(`Screenshot saved to test/temp/reader-${deviceType}-screenshot.png`);
 
   // Scroll down to test infinite scroll
   console.log('Testing infinite scroll...');
@@ -100,4 +113,19 @@ const fs = require('fs');
   }
 
   await browser.close();
-})();
+}
+
+// Run if called directly from CLI
+if (require.main === module) {
+  const deviceType = process.argv[2] || 'desktop';
+
+  const configs = {
+    desktop: { width: 1920, height: 1080, deviceType: 'desktop' },
+    mobile: { width: 375, height: 667, deviceType: 'mobile' }
+  };
+
+  const config = configs[deviceType] || configs.desktop;
+  testReaderPage(config);
+}
+
+module.exports = { testReaderPage };

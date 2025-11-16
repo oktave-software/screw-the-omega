@@ -6,8 +6,10 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test:landing": "node test/test-landing.js",
-    "test:reader": "node test/test-reader.js",
+    "test:landing:desktop": "node test/test-landing.js desktop",
+    "test:landing:mobile": "node test/test-landing.js mobile",
+    "test:reader:desktop": "node test/test-reader.js desktop",
+    "test:reader:mobile": "node test/test-reader.js mobile",
     "serve": "python3 -m http.server 8000"
   },
   "devDependencies": {
