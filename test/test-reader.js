@@ -72,5 +72,32 @@ const fs = require('fs');
   });
   console.log('After scrolling, page counter shows:', scrolledPageCounter);
 
+  // Test right navigation (next page)
+  console.log('\nTesting tap navigation...');
+  const navRightExists = await page.evaluate(() => {
+    return !!document.getElementById('nav-right');
+  });
+  console.log('Navigation zones present:', navRightExists);
+
+  if (navRightExists) {
+    // Click right zone to go to next page
+    await page.click('#nav-right');
+    await page.waitForTimeout(1000); // Wait for smooth scroll
+
+    const afterNextClick = await page.evaluate(() => {
+      return document.getElementById('page-counter')?.textContent;
+    });
+    console.log('After clicking right zone:', afterNextClick);
+
+    // Click left zone to go back
+    await page.click('#nav-left');
+    await page.waitForTimeout(1000);
+
+    const afterPrevClick = await page.evaluate(() => {
+      return document.getElementById('page-counter')?.textContent;
+    });
+    console.log('After clicking left zone:', afterPrevClick);
+  }
+
   await browser.close();
 })();

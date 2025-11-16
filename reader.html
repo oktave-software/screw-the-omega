@@ -171,6 +171,42 @@
             z-index: 999;
         }
 
+        /* Navigation tap zones */
+        .nav-zone {
+            position: fixed;
+            top: 0; /* Extend all the way to top */
+            bottom: 0;
+            width: calc((100vw - min(1200px, 100vw - 40px)) / 2 + min(1200px, 100vw - 40px) / 3);
+            cursor: pointer;
+            z-index: 998;
+            -webkit-tap-highlight-color: transparent;
+            tap-highlight-color: transparent;
+        }
+
+        /* Remove all highlight effects */
+        .nav-zone:active,
+        .nav-zone:focus {
+            background-color: transparent;
+            outline: none;
+        }
+
+        #nav-left {
+            left: 0;
+            right: auto;
+        }
+
+        #nav-right {
+            right: 0;
+            left: auto;
+        }
+
+        /* 33% of viewport width for tablet/mobile */
+        @media (max-width: 1240px) {
+            .nav-zone {
+                width: 33.33vw;
+            }
+        }
+
         /* Mobile optimizations */
         @media (max-width: 768px) {
             #comic-container {
@@ -221,6 +257,10 @@
     <!-- Comic pages container -->
     <main id="comic-container" role="main"></main>
 
+    <!-- Navigation tap zones -->
+    <div id="nav-left" class="nav-zone" role="button" aria-label="Previous page" tabindex="0"></div>
+    <div id="nav-right" class="nav-zone" role="button" aria-label="Next page" tabindex="0"></div>
+
     <!-- Page counter -->
     <div id="page-counter" style="display: none;">Page 1 / 1</div>
 
@@ -237,6 +277,8 @@
             const pageCounter = document.getElementById('page-counter');
             const readerHeader = document.getElementById('reader-header');
             const toggleHeaderBtn = document.getElementById('toggle-header');
+            const navLeft = document.getElementById('nav-left');
+            const navRight = document.getElementById('nav-right');
 
             let totalPages = 0;
             let currentPage = 0;
@@ -289,8 +331,8 @@
                     const imgBottom = imgTop + rect.height;
 
                     if (scrollPosition >= imgTop && scrollPosition <= imgBottom) {
-                        currentPage = i + 1;
-                        pageCounter.textContent = `Page ${currentPage} / ${totalPages}`;
+                        currentPage = i; // 0-based index
+                        pageCounter.textContent = `Page ${i + 1} / ${totalPages}`;
                         break;
                     }
                 }
@@ -307,6 +349,43 @@
                 } else {
                     readerHeader.classList.remove('hidden');
                     toggleHeaderBtn.textContent = 'Hide Header';
+                }
+            }
+
+            /**
+             * Navigates to the next page
+             */
+            function nextPage() {
+                if (currentPage < totalPages - 1) {
+                    const nextPageIndex = currentPage + 1;
+                    scrollToPage(nextPageIndex);
+                }
+            }
+
+            /**
+             * Navigates to the previous page
+             */
+            function previousPage() {
+                if (currentPage > 0) {
+                    const prevPageIndex = currentPage - 1;
+                    scrollToPage(prevPageIndex);
+                }
+            }
+
+            /**
+             * Scrolls to a specific page
+             */
+            function scrollToPage(pageIndex) {
+                const images = document.querySelectorAll('.comic-page');
+                if (pageIndex >= 0 && pageIndex < images.length) {
+                    const targetImage = images[pageIndex];
+                    const headerHeight = readerHeader.offsetHeight;
+                    const targetPosition = targetImage.offsetTop - headerHeight;
+
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
                 }
             }
 
@@ -401,6 +480,34 @@
 
             // Toggle header button
             toggleHeaderBtn.addEventListener('click', toggleHeader);
+
+            // Navigation zone event listeners
+            navLeft.addEventListener('click', previousPage);
+            navRight.addEventListener('click', nextPage);
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    previousPage();
+                } else if (e.key === 'ArrowRight') {
+                    nextPage();
+                }
+            });
+
+            // Keyboard support for navigation zones
+            navLeft.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    previousPage();
+                }
+            });
+
+            navRight.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    nextPage();
+                }
+            });
 
             // Initialize reader when DOM is ready
             if (document.readyState === 'loading') {
