@@ -36,21 +36,24 @@ body {
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    opacity: 0.3;
+    opacity: 0.5;
     z-index: 0;
 }
 
-#header h1,
-#header .blurb {
+.header-content {
     position: relative;
     z-index: 1;
+    max-width: 800px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 30px;
+    border-radius: 10px;
 }
 
 #header h1 {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 4rem;
+    font-size: 3.2rem;
     color: #9370DB;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     font-weight: 900;
     letter-spacing: 0.15em;
     text-shadow: 2px 2px 0px #9370DB;
@@ -61,16 +64,16 @@ body {
 }
 
 #header .blurb {
-    max-width: 800px;
     font-size: 1.1rem;
     line-height: 1.8;
     color: #E6E6FA;
+    margin: 0;
 }
 
 /* Main Content Section */
 #main-content {
     width: 100%;
-    min-height: 100vh;
+    min-height: 50vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -135,7 +138,6 @@ body {
 /* Footer Section */
 #footer {
     width: 100%;
-    min-height: 50vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -163,8 +165,12 @@ body {
 
 /* Mobile specific styles */
 @media (max-width: 768px) {
+    .header-content {
+        padding: 25px;
+    }
+
     #header h1 {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         text-shadow: 1px 1px 0px #9370DB;
     }
 
@@ -196,8 +202,12 @@ body {
 
 /* Very small screens */
 @media (max-width: 480px) {
+    .header-content {
+        padding: 20px;
+    }
+
     #header h1 {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         text-shadow: 1px 1px 0px #9370DB;
     }
 
